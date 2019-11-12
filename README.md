@@ -13,7 +13,9 @@ Audit: https://www.trailofbits.com/reports/livepeer.pdf
 
 Tech specifications: https://github.com/livepeer/wiki/blob/master/spec/tributary-and-snowmelt/SPEC.md
 
-## Livepeer contracts (https://github.com/livepeer/wiki/blob/master/Deployed-Contract-Addresses.md)
+## Livepeer contracts
+
+https://github.com/livepeer/wiki/blob/master/Deployed-Contract-Addresses.md
 
 # Alpha
 
