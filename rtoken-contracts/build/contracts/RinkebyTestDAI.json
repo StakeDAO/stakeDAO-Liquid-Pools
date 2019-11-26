@@ -1,0 +1,289 @@
+{
+  "contractName": "RinkebyTestDAI",
+  "abi": [
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "allocateTo",
+      "outputs": [],
+      "payable": true,
+      "stateMutability": "payable",
+      "type": "function"
+    }
+  ],
+  "metadata": "{\"compiler\":{\"version\":\"0.5.12+commit.7709ece9\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"allocateTo\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"}],\"devdoc\":{\"methods\":{}},\"userdoc\":{\"methods\":{}}},\"settings\":{\"compilationTarget\":{\"/Users/william/Development/Ethereum/StakeCapitalRepos/rtoken-contracts/contracts/test/RinkebyDaiFaucet.sol\":\"RinkebyTestDAI\"},\"evmVersion\":\"petersburg\",\"libraries\":{},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"/Users/william/Development/Ethereum/StakeCapitalRepos/rtoken-contracts/contracts/test/RinkebyDaiFaucet.sol\":{\"keccak256\":\"0x43cdebcef514572cc69ed37bd1f05b52fad267260723617aea44a669d52df0e1\",\"urls\":[\"bzz-raw://ea3512b3486b1334d6a1318ae73d18fdbbdf2e33d8031890ab1710d9caf0e1a5\",\"dweb:/ipfs/QmeHevpJkUSW7P9vYpibrBhfEjpbuXXsTkuExPZM2QT67W\"]}},\"version\":1}",
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "sourceMap": "",
+  "deployedSourceMap": "",
+  "source": "pragma solidity ^0.5.0;\n\ncontract RinkebyTestDAI {\n    function allocateTo(address,uint256) public payable;\n}\n",
+  "sourcePath": "/Users/william/Development/Ethereum/StakeCapitalRepos/rtoken-contracts/contracts/test/RinkebyDaiFaucet.sol",
+  "ast": {
+    "absolutePath": "/Users/william/Development/Ethereum/StakeCapitalRepos/rtoken-contracts/contracts/test/RinkebyDaiFaucet.sol",
+    "exportedSymbols": {
+      "RinkebyTestDAI": [
+        10036
+      ]
+    },
+    "id": 10037,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 10028,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".0"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:25"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": false,
+        "id": 10036,
+        "linearizedBaseContracts": [
+          10036
+        ],
+        "name": "RinkebyTestDAI",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": null,
+            "documentation": null,
+            "id": 10035,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "allocateTo",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 10033,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 10030,
+                  "name": "",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 10035,
+                  "src": "75:7:25",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 10029,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "75:7:25",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 10032,
+                  "name": "",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 10035,
+                  "src": "83:7:25",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 10031,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "83:7:25",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "74:17:25"
+            },
+            "returnParameters": {
+              "id": 10034,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "106:0:25"
+            },
+            "scope": 10036,
+            "src": "55:52:25",
+            "stateMutability": "payable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 10037,
+        "src": "25:84:25"
+      }
+    ],
+    "src": "0:110:25"
+  },
+  "legacyAST": {
+    "absolutePath": "/Users/william/Development/Ethereum/StakeCapitalRepos/rtoken-contracts/contracts/test/RinkebyDaiFaucet.sol",
+    "exportedSymbols": {
+      "RinkebyTestDAI": [
+        10036
+      ]
+    },
+    "id": 10037,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 10028,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".0"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:25"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": false,
+        "id": 10036,
+        "linearizedBaseContracts": [
+          10036
+        ],
+        "name": "RinkebyTestDAI",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": null,
+            "documentation": null,
+            "id": 10035,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "allocateTo",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 10033,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 10030,
+                  "name": "",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 10035,
+                  "src": "75:7:25",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 10029,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "75:7:25",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 10032,
+                  "name": "",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 10035,
+                  "src": "83:7:25",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 10031,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "83:7:25",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "74:17:25"
+            },
+            "returnParameters": {
+              "id": 10034,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "106:0:25"
+            },
+            "scope": 10036,
+            "src": "55:52:25",
+            "stateMutability": "payable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 10037,
+        "src": "25:84:25"
+      }
+    ],
+    "src": "0:110:25"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.5.12+commit.7709ece9.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "3.0.16",
+  "updatedAt": "2019-11-25T09:25:33.322Z",
+  "devdoc": {
+    "methods": {}
+  },
+  "userdoc": {
+    "methods": {}
+  }
+}
