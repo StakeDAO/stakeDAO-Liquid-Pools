@@ -197,11 +197,17 @@ contract("RToken", accounts => {
         const cumulativeInterest = wad4human(accountStats.cumulativeInterest, decimals);
         console.log(`${accountName} cumulativeInterest ${cumulativeInterest}`);
 
-        const rInterest = wad4human(accountStats.rInterest, decimals);
+        const rInterest = accountStats.rInterest;
         console.log(`${accountName} rInterest ${rInterest}`);
 
-        const sInternalAmount = wad4human(accountStats.sInternalAmount, decimals);
+        const sInternalAmount = accountStats.sInternalAmount;
         console.log(`${accountName} sInternalAmount ${sInternalAmount}`);
+
+        const lDebt = accountStats.lDebt;
+        console.log(`${accountName} lDebt ${lDebt}`);
+
+        const rAmount = accountStats.rAmount;
+        console.log(`${accountName} rAmount ${rAmount}`);
     }
 
     it("#0 initial test condition", async () => {
@@ -294,33 +300,25 @@ contract("RToken", accounts => {
 
         await printAccount(customer1, 18);
 
-        await printAccount(customer2, 18);
+
+        await web3tx(rToken.redeem, "rToken.redeem 10 to customer1", {
+            inLogs: [{
+                name: "Transfer",
+                args: {
+                    from: customer1,
+                    to: ZERO_ADDRESS,
+                    value: toWad(10)
+                }
+            }]
+        })(toWad(10), {
+            from: customer1
+        });
+
+        console.log(`   Exchange rate after redeem to customer 1: ${await cToken.exchangeRateStored()}`);
+
+        await printAccount(customer1, 18);
 
 
-        // await expectAccount(customer1, {
-        //     tokenBalance: "100.00000",
-        //     cumulativeInterest: "0.00000",
-        //     receivedLoan: "100.00000",
-        //     receivedSavings: "100.00100",
-        //     interestPayable: "0.00100",
-        // });
-        // assert.deepEqual(parseGlobalStats(await rToken.getGlobalStats.call()), {
-        //     totalSupply: "100.00000",
-        //     totalSavingsAmount: "100.00100"
-        // });
-        //
-        // await web3tx(rToken.redeem, "rToken.redeem 10 to customer1", {
-        //     inLogs: [{
-        //         name: "Transfer",
-        //         args: {
-        //             from: customer1,
-        //             to: ZERO_ADDRESS,
-        //             value: toWad(10)
-        //         }
-        //     }]
-        // })(toWad(10), {
-        //     from: customer1
-        // });
         // assert.equal(wad4human(await token.balanceOf.call(customer1)), "910.00000");
         // assert.equal(wad4human(await rToken.balanceOf.call(customer1)), "90.00101");
         // await expectAccount(customer1, {
