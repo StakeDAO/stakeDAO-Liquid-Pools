@@ -13,6 +13,8 @@ Audit: https://www.trailofbits.com/reports/livepeer.pdf
 
 Tech specifications: https://github.com/livepeer/wiki/blob/master/spec/tributary-and-snowmelt/SPEC.md
 
+Bonding manager: https://github.com/livepeer/protocol/blob/master/contracts/bonding/BondingManager.sol
+
 ## Livepeer contracts
 
 https://github.com/livepeer/wiki/blob/master/Deployed-Contract-Addresses.md
