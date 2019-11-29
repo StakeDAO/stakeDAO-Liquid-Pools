@@ -1,13 +1,16 @@
 pragma solidity >=0.5.10 <0.6.0;
 
 import {IAllocationStrategy} from "./IAllocationStrategy.sol";
+import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 contract LivepeerAllocationStrategy is IAllocationStrategy {
 
     uint256 exchangeRateStored = 1;
 
-    constructor() public {
+    IERC20 livepeerToken;
 
+    constructor(IERC20 _livepeerToken) public {
+        livepeerToken = _livepeerToken;
     }
 
     function underlying() external view returns (address) {
@@ -19,7 +22,7 @@ contract LivepeerAllocationStrategy is IAllocationStrategy {
     }
 
     function accrueInterest() external returns (bool) {
-        exchangeRateStored++;
+        exchangeRateStored = exchangeRateStored + exchangeRateStored * (new delegated total / (previous delegated total + minted since previous reward - redeemed since previous reward) - 1);
         return true;
     }
 

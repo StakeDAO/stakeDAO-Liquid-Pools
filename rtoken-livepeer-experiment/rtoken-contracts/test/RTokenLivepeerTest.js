@@ -216,7 +216,7 @@ contract("RToken", accounts => {
         assert.equal(wad4human(await token.balanceOf.call(customer1)), "1000.00000");
     });
 
-    it("#2 rToken normal operations with zero hatter", async () => {
+    it.only("#2 rToken normal operations with zero hatter", async () => {
         console.log("\n\n");
         await web3tx(token.approve, "token.approve 100 by customer1")(rToken.address, toWad(100), {
             from: customer1
