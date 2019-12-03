@@ -16,4 +16,7 @@ contract BondingManagerInterface {
     function bond(uint256 _amount, address _to) external;
 
     function unbond(uint256 _amount) external;
+
+    function claimEarnings(uint256 _endRound) external;
+
 }

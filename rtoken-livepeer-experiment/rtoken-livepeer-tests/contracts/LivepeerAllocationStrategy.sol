@@ -4,19 +4,23 @@ import {IAllocationStrategy} from "../../rtoken-contracts/contracts/IAllocationS
 import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import {BondingManagerInterface} from "./BondingManagerInterface.sol";
+import {RoundsManagerInterface} from "./RoundsManagerInterface.sol";
 
+// TODO: Consider passing in LivepeerController instead of individual contracts.
 contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
 
-    uint256 private currentExchangeRate = 1;
+    uint256 private currentExchangeRate = 10**18;
     uint256 private previousDelegatedTotal = 0;
 
     IERC20 livepeerToken;
     BondingManagerInterface bondingManager;
+    RoundsManagerInterface roundsManager;
     address stakeCapitalTranscoder;
 
-    constructor(IERC20 _livepeerToken, BondingManagerInterface _bondingManager, address _stakeCapitalTranscoder) public {
+    constructor(IERC20 _livepeerToken, BondingManagerInterface _bondingManager, RoundsManagerInterface _roundsManager, address _stakeCapitalTranscoder) public {
         livepeerToken = _livepeerToken;
         bondingManager = _bondingManager;
+        roundsManager = _roundsManager;
         stakeCapitalTranscoder = _stakeCapitalTranscoder;
     }
 
@@ -28,7 +32,17 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
         return currentExchangeRate;
     }
 
+    event DEBUG(uint256 a, uint256 b, uint256 c);
+
     function accrueInterest() external returns (bool) {
+        uint256 lastClaimRound;
+        (,,,,,lastClaimRound,) = bondingManager.getDelegator(address(this));
+
+        uint256 currentRound = roundsManager.currentRound();
+        if (lastClaimRound < currentRound) {
+            bondingManager.claimEarnings(roundsManager.currentRound());
+        }
+
         uint256 currentDelegatedTotal;
         (currentDelegatedTotal,,,,,,) = bondingManager.getDelegator(address(this));
 
@@ -36,10 +50,16 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
             previousDelegatedTotal = currentDelegatedTotal;
         }
 
-        currentExchangeRate = currentExchangeRate + currentExchangeRate * (currentDelegatedTotal / previousDelegatedTotal - 1); // + minted since previous reward - redeemed since previous reward) - 1);
+        emit DEBUG(currentExchangeRate, currentDelegatedTotal, previousDelegatedTotal);
+
+        currentExchangeRate = (currentExchangeRate + currentExchangeRate * (currentDelegatedTotal * 10**18 / previousDelegatedTotal - 1)) / 10**18; // + minted since previous reward - redeemed since previous reward) - 1);
         previousDelegatedTotal = currentDelegatedTotal;
 
         return true;
+    }
+
+    function claimEarnings(uint256 _endRound) external {
+        bondingManager.claimEarnings(_endRound);
     }
 
     function investUnderlying(uint256 investAmount) external returns (uint256) {

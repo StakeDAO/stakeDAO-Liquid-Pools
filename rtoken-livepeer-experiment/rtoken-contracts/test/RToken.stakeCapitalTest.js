@@ -154,16 +154,16 @@ contract("RToken", accounts => {
         else if (account === customer3) accountName = "customer3";
         else if (account === customer4) accountName = "customer4";
 
-        const tokenBalance = wad4human(await rToken.balanceOf.call(account), decimals);
+        const tokenBalance = await rToken.balanceOf.call(account)
         console.log(`${accountName} tokenBalance ${tokenBalance}`);
 
-        const receivedLoan = wad4human(await rToken.receivedLoanOf.call(account), decimals);
+        const receivedLoan = await rToken.receivedLoanOf.call(account)
         console.log(`${accountName} receivedLoan ${receivedLoan}`);
 
-        const receivedSavings = wad4human(await rToken.receivedSavingsOf.call(account), decimals);
+        const receivedSavings = await rToken.receivedSavingsOf.call(account)
         console.log(`${accountName} receivedSavings ${receivedSavings}`);
 
-        const interestPayable = wad4human(await rToken.interestPayableOf.call(account), decimals);
+        const interestPayable = await rToken.interestPayableOf.call(account)
         console.log(`${accountName} interestPayable ${interestPayable}`);
 
         const accountStats = await rToken.getAccountStats.call(account);

@@ -6,8 +6,8 @@ const RToken = artifacts.require('RToken')
 const BondingManager = artifacts.require('BondingManager')
 const SortedDoublyLL = artifacts.require('SortedDoublyLL')
 
-const { toWad } = require('@decentral.ee/web3-test-helpers')
-import { functionSig } from '../../livepeer-protocol/utils/helpers'
+const { toWad, wad4human } = require('@decentral.ee/web3-test-helpers')
+import { functionSig, functionEncodedABI } from '../../livepeer-protocol/utils/helpers'
 
 contract('RToken using LivepeerAllocationStrategy', ([admin, staker, stakeCapitalTranscoder]) => {
 
@@ -47,7 +47,7 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker, stakeCapita
         await livepeerToken.mint(staker, toWad(1000))
 
         livepeerAllocationStrategy = await LivepeerAllocationStrategy
-            .new(livepeerToken.address, bondingManager.address, stakeCapitalTranscoder)
+            .new(livepeerToken.address, bondingManager.address, fixture.roundsManager.address, stakeCapitalTranscoder)
 
         rToken = await RToken.new()
         await rToken.initialize(livepeerAllocationStrategy.address, 'RToken Test', 'RTOKEN', 18)
@@ -59,12 +59,14 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker, stakeCapita
         await fixture.tearDown()
     })
 
-    describe("mint(uint256 mintAmount)", async () => {
+    describe('mint(uint256 mintAmount)', async () => {
 
-        it('updates exchange rate as expected and bonds', async () => {
+        const currentRound = 100
+
+        beforeEach(async () => {
             await fixture.roundsManager.setMockBool(functionSig('currentRoundInitialized()'), true)
             await fixture.roundsManager.setMockBool(functionSig('currentRoundLocked()'), false)
-            await fixture.roundsManager.setMockUint256(functionSig('currentRound()'), 100)
+            await fixture.roundsManager.setMockUint256(functionSig('currentRound()'), currentRound)
 
             await livepeerToken.approve(rToken.address, toWad(100), { from: stakeCapitalTranscoder })
             await bondingManager.bond(toWad(100), stakeCapitalTranscoder, { from: stakeCapitalTranscoder })
@@ -72,11 +74,49 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker, stakeCapita
 
             await livepeerToken.approve(rToken.address, toWad(100), { from: staker })
             await rToken.mint(toWad(100), { from: staker })
+        })
 
-            const delegatorInfo = await bondingManager.getDelegator(livepeerAllocationStrategy.address)
+        it('updates exchange rate, bonds and updates user rtoken balance', async () => {
+            const delagatorInfo = await bondingManager.getDelegator(livepeerAllocationStrategy.address)
 
-            assert.equal(await livepeerAllocationStrategy.exchangeRateStored(), 1);
-            assert.equal(delegatorInfo.bondedAmount.toString(), toWad(100).toString())
+            assert.equal((await rToken.balanceOf(staker)).toString(), toWad(100).toString())
+            assert.equal((await livepeerAllocationStrategy.exchangeRateStored()).toString(), toWad(1).toString())
+            assert.equal(delagatorInfo.bondedAmount.toString(), toWad(100).toString())
+        })
+
+        describe('reward()', async () => {
+
+            beforeEach(async () => {
+                await fixture.roundsManager.setMockUint256(functionSig('currentRound()'), currentRound + 1)
+                await fixture.roundsManager.execute(bondingManager.address, functionSig('setActiveTranscoders()'))
+                await fixture.jobsManager.execute(
+                    bondingManager.address,
+                    functionEncodedABI(
+                        "updateTranscoderWithFees(address,uint256,uint256)",
+                        ["address", "uint256", "uint256"],
+                        [stakeCapitalTranscoder, 1000, currentRound + 1]
+                    )
+                )
+                await fixture.minter.setMockUint256(functionSig('createReward(uint256,uint256)'), 1000)
+            })
+
+            it('accrues interest for staker', async () => {
+                await bondingManager.reward({ from: stakeCapitalTranscoder })
+
+                console.log(await rToken.balanceOf(staker))
+                console.log(await bondingManager.getDelegator(livepeerAllocationStrategy.address))
+
+                console.log(await livepeerAllocationStrategy.exchangeRateStored())
+
+                await rToken.payInterest(staker)
+
+                console.log(await rToken.balanceOf(staker))
+                console.log(await bondingManager.getDelegator(livepeerAllocationStrategy.address))
+
+                console.log(await livepeerAllocationStrategy.exchangeRateStored())
+
+                assert.fail()
+            })
         })
     })
 
