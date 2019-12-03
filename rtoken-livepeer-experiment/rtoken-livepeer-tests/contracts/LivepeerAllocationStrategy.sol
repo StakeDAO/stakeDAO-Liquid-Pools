@@ -1,10 +1,11 @@
 pragma solidity >=0.5.10 <0.6.0;
 
 import {IAllocationStrategy} from "../../rtoken-contracts/contracts/IAllocationStrategy.sol";
+import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import {BondingManagerInterface} from "./BondingManagerInterface.sol";
 
-contract LivepeerAllocationStrategy is IAllocationStrategy {
+contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
 
     uint256 private currentExchangeRate = 1;
     uint256 private previousDelegatedTotal = 0;
