@@ -13,7 +13,7 @@ export default class RPC {
         if (arg) req.params = arg
 
         return new Promise((resolve, reject) => {
-            return this.web3.currentProvider.sendAsync(req, (err, result) => {
+            return this.web3.currentProvider.send(req, (err, result) => {  // Note 'send' has been changed from 'sendAsync' to support web3.js 1.0 syntax
                 if (err) {
                     reject(err)
                 } else if (result && result.error) {

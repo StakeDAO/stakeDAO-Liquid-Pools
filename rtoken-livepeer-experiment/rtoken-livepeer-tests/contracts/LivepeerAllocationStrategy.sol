@@ -1,6 +1,6 @@
 pragma solidity >=0.5.10 <0.6.0;
 
-import {IAllocationStrategy} from "./IAllocationStrategy.sol";
+import {IAllocationStrategy} from "../../rtoken-contracts/contracts/IAllocationStrategy.sol";
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import {BondingManagerInterface} from "./BondingManagerInterface.sol";
 
