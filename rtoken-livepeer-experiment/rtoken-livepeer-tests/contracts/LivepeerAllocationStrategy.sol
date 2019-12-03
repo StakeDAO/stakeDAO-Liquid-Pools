@@ -12,13 +12,11 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
 
     IERC20 livepeerToken;
     BondingManagerInterface bondingManager;
-    address stakeCapitalPoolDelegator;
     address stakeCapitalTranscoder;
 
-    constructor(IERC20 _livepeerToken, BondingManagerInterface _bondingManager, address _stakeCapitalPoolDelegator, address _stakeCapitalTranscoder) public {
+    constructor(IERC20 _livepeerToken, BondingManagerInterface _bondingManager, address _stakeCapitalTranscoder) public {
         livepeerToken = _livepeerToken;
         bondingManager = _bondingManager;
-        stakeCapitalPoolDelegator = _stakeCapitalPoolDelegator;
         stakeCapitalTranscoder = _stakeCapitalTranscoder;
     }
 
@@ -32,9 +30,15 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
 
     function accrueInterest() external returns (bool) {
         uint256 currentDelegatedTotal;
-        (,,, currentDelegatedTotal,,,) = bondingManager.getDelegator(stakeCapitalPoolDelegator);
+        (currentDelegatedTotal,,,,,,) = bondingManager.getDelegator(address(this));
+
+        if (previousDelegatedTotal == 0) {
+            previousDelegatedTotal = currentDelegatedTotal;
+        }
+
         currentExchangeRate = currentExchangeRate + currentExchangeRate * (currentDelegatedTotal / previousDelegatedTotal - 1); // + minted since previous reward - redeemed since previous reward) - 1);
         previousDelegatedTotal = currentDelegatedTotal;
+
         return true;
     }
 
