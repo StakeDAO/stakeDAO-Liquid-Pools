@@ -89,32 +89,6 @@ contract("RToken", accounts => {
         SELF_HAT_ID = await rToken.SELF_HAT_ID.call();
     });
 
-    function parseHat({hatID, recipients, proportions}) {
-        const hatObj = {
-            recipients: recipients,
-            proportions: proportions.map(i => i.toNumber())
-        };
-        if (typeof (hatID) !== "undefined") {
-            hatObj.hatID = hatID.toNumber();
-        }
-        return hatObj;
-    }
-
-    function parseHatStats({useCount, totalLoans, totalSavings}) {
-        return {
-            useCount,
-            totalLoans: wad4human(totalLoans),
-            totalSavings: wad4human(totalSavings)
-        };
-    }
-
-    function parseGlobalStats({totalSupply, totalSavingsAmount}) {
-        return {
-            totalSupply: wad4human(totalSupply),
-            totalSavingsAmount: wad4human(totalSavingsAmount)
-        };
-    }
-
     async function doBingeBorrowing(nBlocks = 100) {
         // this process should generate 0.0001% * nBlocks amount of tokens worth of interest
         // when nBlocks = 100, it is 0.001

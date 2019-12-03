@@ -14,7 +14,7 @@ contract LivepeerAllocationStrategy is IAllocationStrategy {
     }
 
     function underlying() external view returns (address) {
-        return "0xABCAAaSDC";
+        return address(livepeerToken);
     }
 
     function exchangeRateStored() external view returns (uint256) {

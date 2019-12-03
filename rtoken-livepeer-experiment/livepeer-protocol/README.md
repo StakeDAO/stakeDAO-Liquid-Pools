@@ -30,6 +30,8 @@ cd protocol
 npm install
 ```
 
+May require `npm i node-gyp` to enable `npm install` to run.
+
 You can build and test the Livepeer Protocol locally:
 
 ```
