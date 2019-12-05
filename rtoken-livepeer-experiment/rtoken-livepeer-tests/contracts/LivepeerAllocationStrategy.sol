@@ -7,6 +7,7 @@ import {BondingManagerInterface} from "./BondingManagerInterface.sol";
 import {RoundsManagerInterface} from "./RoundsManagerInterface.sol";
 
 // TODO: Consider passing in LivepeerController instead of individual contracts.
+// TODO: Extract decimal multiplier to a const.
 contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
 
     uint256 private currentExchangeRate = 10**18;
@@ -64,7 +65,7 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
 
     function investUnderlying(uint256 investAmount) external returns (uint256) {
         bondingManager.bond(investAmount, stakeCapitalTranscoder);
-        return investAmount / currentExchangeRate;
+        return investAmount * 10**18 / currentExchangeRate;
     }
 
     function redeemUnderlying(uint256 redeemAmount) external returns (uint256) {

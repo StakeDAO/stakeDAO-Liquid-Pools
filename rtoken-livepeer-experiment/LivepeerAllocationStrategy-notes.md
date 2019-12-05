@@ -26,6 +26,9 @@ Should call reward() if it hasn’t been called for this round.
 And update the exchange rate to:
 previous exchange rate + previous exchange rate * (new delegated total / (previous delegated total + minted since previous reward - redeemed since previous reward) - 1)
 
+Actual used:         
+currentExchangeRate = (currentExchangeRate + currentExchangeRate * (currentDelegatedTotal * 10**18 / previousDelegatedTotal - 1)) / 10**18; // + minted since previous reward - redeemed since previous reward) - 1);
+
 ####investUnderlying()
 Returns amount of LPT invested / exchange rate
 

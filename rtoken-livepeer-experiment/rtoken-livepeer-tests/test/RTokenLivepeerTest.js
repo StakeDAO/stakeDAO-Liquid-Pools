@@ -15,6 +15,7 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker, stakeCapita
     const NUM_ACTIVE_TRANSCODERS = 2
     const UNBONDING_PERIOD = 2
     const MAX_EARNINGS_CLAIMS_ROUNDS = 20
+    const PERC_MULTIPLIER = 10000
 
     let fixture
     let livepeerToken, livepeerAllocationStrategy, rToken, bondingManager
@@ -26,6 +27,7 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker, stakeCapita
         await deployLinkedList()
         bondingManager = await fixture.deployAndRegister(BondingManager, 'BondingManager', fixture.controller.address)
         await setupBondingManager()
+
     })
 
     async function deployLinkedList() {
@@ -59,6 +61,41 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker, stakeCapita
         await fixture.tearDown()
     })
 
+    async function printAccount(account) {
+        let accountName;
+        if (account === admin) accountName = "admin";
+        else if (account === staker) accountName = "staker";
+
+        const tokenBalance = await rToken.balanceOf.call(account)
+        console.log(`\n${accountName} tokenBalance ${tokenBalance}`);
+
+        const receivedLoan = await rToken.receivedLoanOf.call(account)
+        console.log(`${accountName} receivedLoan ${receivedLoan}`);
+
+        const receivedSavings = await rToken.receivedSavingsOf.call(account)
+        console.log(`${accountName} receivedSavings ${receivedSavings}`);
+
+        const interestPayable = await rToken.interestPayableOf.call(account)
+        console.log(`${accountName} interestPayable ${interestPayable}`);
+
+        const accountStats = await rToken.getAccountStats.call(account);
+
+        const cumulativeInterest = accountStats.cumulativeInterest;
+        console.log(`${accountName} cumulativeInterest ${cumulativeInterest}`);
+
+        const rInterest = accountStats.rInterest;
+        console.log(`${accountName} rInterest ${rInterest}`);
+
+        const sInternalAmount = accountStats.sInternalAmount;
+        console.log(`${accountName} sInternalAmount ${sInternalAmount}`);
+
+        const lDebt = accountStats.lDebt;
+        console.log(`${accountName} lDebt ${lDebt}`);
+
+        const rAmount = accountStats.rAmount;
+        console.log(`${accountName} rAmount ${rAmount}`);
+    }
+
     describe('mint(uint256 mintAmount)', async () => {
 
         const currentRound = 100
@@ -70,7 +107,7 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker, stakeCapita
 
             await livepeerToken.approve(rToken.address, toWad(100), { from: stakeCapitalTranscoder })
             await bondingManager.bond(toWad(100), stakeCapitalTranscoder, { from: stakeCapitalTranscoder })
-            await bondingManager.transcoder(5, 10, 1, { from: stakeCapitalTranscoder })
+            await bondingManager.transcoder(50 * PERC_MULTIPLIER, 10 * PERC_MULTIPLIER, 100, { from: stakeCapitalTranscoder })
 
             await livepeerToken.approve(rToken.address, toWad(100), { from: staker })
             await rToken.mint(toWad(100), { from: staker })
@@ -103,17 +140,22 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker, stakeCapita
             it('accrues interest for staker', async () => {
                 await bondingManager.reward({ from: stakeCapitalTranscoder })
 
-                console.log(await rToken.balanceOf(staker))
-                console.log(await bondingManager.getDelegator(livepeerAllocationStrategy.address))
+                console.log("Balance of staker: " + await rToken.balanceOf(staker))
+                console.log("Delegator info: ", await bondingManager.getDelegator(livepeerAllocationStrategy.address))
 
-                console.log(await livepeerAllocationStrategy.exchangeRateStored())
+                console.log(`Exchange rate: ` + await livepeerAllocationStrategy.exchangeRateStored())
+
+                await printAccount(staker)
 
                 await rToken.payInterest(staker)
 
-                console.log(await rToken.balanceOf(staker))
-                console.log(await bondingManager.getDelegator(livepeerAllocationStrategy.address))
+                await printAccount(staker)
 
-                console.log(await livepeerAllocationStrategy.exchangeRateStored())
+                console.log("Balance of staker: " + await rToken.balanceOf(staker))
+                console.log("Delegator info: ", await bondingManager.getDelegator(livepeerAllocationStrategy.address))
+
+                console.log(`Exchange rate: ` + await livepeerAllocationStrategy.exchangeRateStored())
+
 
                 assert.fail()
             })
