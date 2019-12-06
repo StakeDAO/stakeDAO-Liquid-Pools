@@ -46,6 +46,6 @@ interface IAllocationStrategy {
      * @param redeemAmount The amount of underlying to redeem
      * @return uint256 Amount of saving assets burned
      */
-    function redeemUnderlying(uint256 redeemAmount) external returns (uint256);
+    function redeemUnderlying(address owner, uint256 redeemAmount) external returns (uint256);
 
 }

@@ -7,16 +7,20 @@ import {BondingManagerInterface} from "./BondingManagerInterface.sol";
 import {RoundsManagerInterface} from "./RoundsManagerInterface.sol";
 
 // TODO: Consider passing in LivepeerController instead of individual contracts.
-// TODO: Extract decimal multiplier to a const.
 contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
 
-    uint256 private currentExchangeRate = 10**18;
+    uint256 private constant EXCHANGE_RATE_DECIMALS_MULTIPLIER = 10**18;
+    uint256 private currentExchangeRate = EXCHANGE_RATE_DECIMALS_MULTIPLIER;
     uint256 private previousDelegatedTotal = 0;
+    uint256 private investedSinceLastAccrue = 0;
+    uint256 private redeemedSinceLastAccrue = 0;
 
     IERC20 livepeerToken;
     BondingManagerInterface bondingManager;
     RoundsManagerInterface roundsManager;
     address stakeCapitalTranscoder;
+
+    event LivepeerAllocationStrategyRedeem(uint256 unbondingLockId);
 
     constructor(IERC20 _livepeerToken, BondingManagerInterface _bondingManager, RoundsManagerInterface _roundsManager, address _stakeCapitalTranscoder) public {
         livepeerToken = _livepeerToken;
@@ -33,8 +37,6 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
         return currentExchangeRate;
     }
 
-    event DEBUG(uint256 a, uint256 b, uint256 c);
-
     function accrueInterest() external returns (bool) {
         uint256 lastClaimRound;
         (,,,,,lastClaimRound,) = bondingManager.getDelegator(address(this));
@@ -47,29 +49,56 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
         uint256 currentDelegatedTotal;
         (currentDelegatedTotal,,,,,,) = bondingManager.getDelegator(address(this));
 
-        if (previousDelegatedTotal == 0) {
-            previousDelegatedTotal = currentDelegatedTotal;
+        // TODO: Remove if we can remove need for exchangeRate in investUnderlying() and redeemUnderlying()
+        if (currentDelegatedTotal == 0) {
+            return true;
         }
 
-        emit DEBUG(currentExchangeRate, currentDelegatedTotal, previousDelegatedTotal);
+        uint256 previousTotalWithoutNewInvestments;
+        if (previousDelegatedTotal == 0) {
+            previousDelegatedTotal = currentDelegatedTotal;
+            previousTotalWithoutNewInvestments = previousDelegatedTotal;
+        } else {
+            previousTotalWithoutNewInvestments = previousDelegatedTotal + investedSinceLastAccrue - redeemedSinceLastAccrue;
+        }
 
-        currentExchangeRate = (currentExchangeRate + currentExchangeRate * (currentDelegatedTotal * 10**18 / previousDelegatedTotal - 1)) / 10**18; // + minted since previous reward - redeemed since previous reward) - 1);
+        uint256 interestFactor = currentDelegatedTotal * EXCHANGE_RATE_DECIMALS_MULTIPLIER / previousTotalWithoutNewInvestments - 1;
+        currentExchangeRate = (currentExchangeRate + currentExchangeRate * interestFactor) / EXCHANGE_RATE_DECIMALS_MULTIPLIER;
+
         previousDelegatedTotal = currentDelegatedTotal;
+        investedSinceLastAccrue = 0;
+        redeemedSinceLastAccrue = 0;
 
         return true;
+    }
+
+    // TODO: Can we determine the return value without the currentExchangeRate so we can remove this.accrueInterest()?
+    //     Alternatively end accrueInterest() early if not needed.
+    function investUnderlying(uint256 investAmount) external returns (uint256) {
+        this.accrueInterest();
+        bondingManager.bond(investAmount, stakeCapitalTranscoder);
+        investedSinceLastAccrue += investAmount;
+
+        return investAmount * EXCHANGE_RATE_DECIMALS_MULTIPLIER / currentExchangeRate;
+    }
+
+    function redeemUnderlying(address owner, uint256 redeemAmount) external returns (uint256) {
+        uint256 unbondingLockId;
+        (,,,,,,unbondingLockId) = bondingManager.getDelegator(address(this));
+        bondingManager.unbond(redeemAmount);
+        redeemedSinceLastAccrue += redeemAmount;
+
+        emit LivepeerAllocationStrategyRedeem(unbondingLockId);
+
+        return redeemAmount * EXCHANGE_RATE_DECIMALS_MULTIPLIER / currentExchangeRate;
     }
 
     function claimEarnings(uint256 _endRound) external {
         bondingManager.claimEarnings(_endRound);
     }
 
-    function investUnderlying(uint256 investAmount) external returns (uint256) {
-        bondingManager.bond(investAmount, stakeCapitalTranscoder);
-        return investAmount * 10**18 / currentExchangeRate;
-    }
+    function withdrawUnbondingLock(uint256 _unbondingLockId) external {
+        bondingManager.withdrawStake(_unbondingLockId);
 
-    function redeemUnderlying(uint256 redeemAmount) external returns (uint256) {
-        bondingManager.unbond(redeemAmount);
-        return redeemAmount / currentExchangeRate;
     }
 }

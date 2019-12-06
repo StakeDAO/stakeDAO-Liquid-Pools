@@ -426,7 +426,7 @@ contract RToken is
         IAllocationStrategy oldIas = ias;
         ias = allocationStrategy;
         // redeem everything from the old strategy
-        uint256 sOriginalBurned = oldIas.redeemUnderlying(totalSupply);
+        uint256 sOriginalBurned = oldIas.redeemUnderlying(address(this), totalSupply);
         // invest everything into the new strategy
         require(token.approve(address(ias), totalSupply), "token approve failed");
         uint256 sOriginalCreated = ias.investUnderlying(totalSupply);
@@ -801,7 +801,7 @@ contract RToken is
         internal
         returns (uint256 sOriginalBurned)
     {
-        sOriginalBurned = ias.redeemUnderlying(rAmount);
+        sOriginalBurned = ias.redeemUnderlying(owner, rAmount); // TODO: Had to add the owner arg to allow unbonding.
         uint256 sInternalBurned = sOriginalToSInternal(sOriginalBurned);
         recollectLoans(owner, rAmount, sInternalBurned);
     }

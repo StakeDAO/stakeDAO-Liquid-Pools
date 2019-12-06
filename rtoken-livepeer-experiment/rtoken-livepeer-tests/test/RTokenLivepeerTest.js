@@ -9,13 +9,13 @@ const SortedDoublyLL = artifacts.require('SortedDoublyLL')
 const { toWad, wad4human } = require('@decentral.ee/web3-test-helpers')
 import { functionSig, functionEncodedABI } from '../../livepeer-protocol/utils/helpers'
 
-contract('RToken using LivepeerAllocationStrategy', ([admin, staker, stakeCapitalTranscoder]) => {
+contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, stakeCapitalTranscoder]) => {
 
     const NUM_TRANSCODERS = 5
     const NUM_ACTIVE_TRANSCODERS = 2
     const UNBONDING_PERIOD = 2
     const MAX_EARNINGS_CLAIMS_ROUNDS = 20
-    const PERC_MULTIPLIER = 10000
+    const LIVEPEER_PERC_MULTIPLIER = 10000
 
     let fixture
     let livepeerToken, livepeerAllocationStrategy, rToken, bondingManager
@@ -24,29 +24,23 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker, stakeCapita
         fixture = new Fixture(web3)
         await fixture.deploy()
 
-        await deployLinkedList()
-        bondingManager = await fixture.deployAndRegister(BondingManager, 'BondingManager', fixture.controller.address)
-        await setupBondingManager()
-
-    })
-
-    async function deployLinkedList() {
         const sortedDoublyLL = await SortedDoublyLL.new()
         await BondingManager.link('SortedDoublyLL', sortedDoublyLL.address)
-    }
 
-    async function setupBondingManager() {
+        bondingManager = await fixture.deployAndRegister(BondingManager, 'BondingManager', fixture.controller.address)
+
         await bondingManager.setUnbondingPeriod(UNBONDING_PERIOD)
         await bondingManager.setNumTranscoders(NUM_TRANSCODERS)
         await bondingManager.setNumActiveTranscoders(NUM_ACTIVE_TRANSCODERS)
         await bondingManager.setMaxEarningsClaimsRounds(MAX_EARNINGS_CLAIMS_ROUNDS)
-    }
+    })
 
     beforeEach(async () => {
         await fixture.setUp()
 
         livepeerToken = await ERC20Mintable.new()
-        await livepeerToken.mint(staker, toWad(1000))
+        await livepeerToken.mint(staker1, toWad(1000))
+        await livepeerToken.mint(staker2, toWad(1000))
 
         livepeerAllocationStrategy = await LivepeerAllocationStrategy
             .new(livepeerToken.address, bondingManager.address, fixture.roundsManager.address, stakeCapitalTranscoder)
@@ -64,7 +58,8 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker, stakeCapita
     async function printAccount(account) {
         let accountName;
         if (account === admin) accountName = "admin";
-        else if (account === staker) accountName = "staker";
+        else if (account === staker1) accountName = "staker1";
+        else if (account === staker2) accountName = "staker2";
 
         const tokenBalance = await rToken.balanceOf.call(account)
         console.log(`\n${accountName} tokenBalance ${tokenBalance}`);
@@ -96,9 +91,35 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker, stakeCapita
         console.log(`${accountName} rAmount ${rAmount}`);
     }
 
-    describe('mint(uint256 mintAmount)', async () => {
+    async function printExchangeRate() {
+        console.log(`Exchange rate: ${await livepeerAllocationStrategy.exchangeRateStored()}`)
+    }
+
+    async function printDelegatorInfo() {
+        console.log(await bondingManager.getDelegator(livepeerAllocationStrategy.address))
+    }
+
+    async function transcoderReward(rewardValue, round) {
+        await fixture.roundsManager.setMockUint256(functionSig('currentRound()'), round)
+        await fixture.roundsManager.execute(bondingManager.address, functionSig('setActiveTranscoders()'))
+        await fixture.jobsManager.execute(
+            bondingManager.address,
+            functionEncodedABI(
+                "updateTranscoderWithFees(address,uint256,uint256)",
+                ["address", "uint256", "uint256"],
+                [stakeCapitalTranscoder, 1000, round]
+            )
+        )
+        await fixture.minter.setMockUint256(functionSig('createReward(uint256,uint256)'), rewardValue)
+
+        // Reward will distribute reward into 4 chunks of 250, 3 for transcoder, 1 for staker1.
+        await bondingManager.reward({ from: stakeCapitalTranscoder })
+    }
+
+    describe('mint(uint256 mintAmount) - RToken Staker1', () => {
 
         const currentRound = 100
+        const staker1BondedAmount = 100
 
         beforeEach(async () => {
             await fixture.roundsManager.setMockBool(functionSig('currentRoundInitialized()'), true)
@@ -107,57 +128,89 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker, stakeCapita
 
             await livepeerToken.approve(rToken.address, toWad(100), { from: stakeCapitalTranscoder })
             await bondingManager.bond(toWad(100), stakeCapitalTranscoder, { from: stakeCapitalTranscoder })
-            await bondingManager.transcoder(50 * PERC_MULTIPLIER, 10 * PERC_MULTIPLIER, 100, { from: stakeCapitalTranscoder })
+            await bondingManager.transcoder(50 * LIVEPEER_PERC_MULTIPLIER, 10 * LIVEPEER_PERC_MULTIPLIER, 100, { from: stakeCapitalTranscoder })
 
-            await livepeerToken.approve(rToken.address, toWad(100), { from: staker })
-            await rToken.mint(toWad(100), { from: staker })
+            await livepeerToken.approve(rToken.address, toWad(staker1BondedAmount), { from: staker1 })
+            await rToken.mint(toWad(staker1BondedAmount), { from: staker1 })
         })
 
         it('updates exchange rate, bonds and updates user rtoken balance', async () => {
             const delagatorInfo = await bondingManager.getDelegator(livepeerAllocationStrategy.address)
 
-            assert.equal((await rToken.balanceOf(staker)).toString(), toWad(100).toString())
+            assert.equal((await rToken.balanceOf(staker1)).toString(), toWad(staker1BondedAmount).toString())
             assert.equal((await livepeerAllocationStrategy.exchangeRateStored()).toString(), toWad(1).toString())
             assert.equal(delagatorInfo.bondedAmount.toString(), toWad(100).toString())
         })
 
-        describe('reward()', async () => {
+        describe('reward() - BondingManager', () => {
 
             beforeEach(async () => {
-                await fixture.roundsManager.setMockUint256(functionSig('currentRound()'), currentRound + 1)
-                await fixture.roundsManager.execute(bondingManager.address, functionSig('setActiveTranscoders()'))
-                await fixture.jobsManager.execute(
-                    bondingManager.address,
-                    functionEncodedABI(
-                        "updateTranscoderWithFees(address,uint256,uint256)",
-                        ["address", "uint256", "uint256"],
-                        [stakeCapitalTranscoder, 1000, currentRound + 1]
-                    )
-                )
-                await fixture.minter.setMockUint256(functionSig('createReward(uint256,uint256)'), 1000)
+                await transcoderReward(1000, currentRound + 1)
             })
 
-            it('accrues interest for staker', async () => {
-                await bondingManager.reward({ from: stakeCapitalTranscoder })
+            it('accrues interest for staker1', async () => {
+                await rToken.payInterest(staker1)
+                // Check updating the exchange rate a second time before reward is called again doesn't upset the result
+                await rToken.payInterest(staker1)
 
-                console.log("Balance of staker: " + await rToken.balanceOf(staker))
-                console.log("Delegator info: ", await bondingManager.getDelegator(livepeerAllocationStrategy.address))
+                const delegatorInfo = await bondingManager.getDelegator(livepeerAllocationStrategy.address)
+                const exchangeRate = await livepeerAllocationStrategy.exchangeRateStored()
+                const stakerBalance = await rToken.balanceOf(staker1)
 
-                console.log(`Exchange rate: ` + await livepeerAllocationStrategy.exchangeRateStored())
+                assert.equal(delegatorInfo.bondedAmount.toString(), '100000000000000000250')
+                // Note we lose precision here, the correct exchange rate would be 100000000000000000250
+                // But we only have 18 decimals of precision. We can increase precision to mitigate this issue.
+                assert.equal(exchangeRate.toString(), '1000000000000000002')
+                // The correct balance would be 100000000000000000250
+                assert.equal(stakerBalance.toString(), '100000000000000000200')
+            })
 
-                await printAccount(staker)
+            describe('mint(uint256 mintAmount) - RToken Staker2', () => {
 
-                await rToken.payInterest(staker)
+                const staker2BondedAmount = 100
 
-                await printAccount(staker)
+                beforeEach(async () => {
+                    await livepeerToken.approve(rToken.address, toWad(staker2BondedAmount), { from: staker2 })
+                    await rToken.mint(toWad(staker2BondedAmount), { from: staker2 })
+                })
 
-                console.log("Balance of staker: " + await rToken.balanceOf(staker))
-                console.log("Delegator info: ", await bondingManager.getDelegator(livepeerAllocationStrategy.address))
+                it('updates exchange rate, bonds and updates user rtoken balance', async () => {
+                    const delagatorInfo = await bondingManager.getDelegator(livepeerAllocationStrategy.address)
+                    assert.equal((await rToken.balanceOf(staker2)).toString(), toWad(staker2BondedAmount).toString())
+                    assert.equal((await livepeerAllocationStrategy.exchangeRateStored()).toString(), '1000000000000000002')
+                    assert.equal(delagatorInfo.bondedAmount.toString(), '200000000000000000250')
+                })
 
-                console.log(`Exchange rate: ` + await livepeerAllocationStrategy.exchangeRateStored())
+                describe('reward() - BondingManager * 2', () => {
 
+                    beforeEach(async () => {
+                        await transcoderReward(1500, currentRound + 2)
+                        await transcoderReward(1500, currentRound + 3)
+                    })
 
-                assert.fail()
+                    it('accrues interest for staker1 and staker2', async () => {
+                        await rToken.payInterest(staker1)
+                        await rToken.payInterest(staker2)
+
+                        const staker1Balance = await rToken.balanceOf(staker1)
+                        const staker2Balance = await rToken.balanceOf(staker2)
+
+                        assert.equal(staker1Balance.toString(), '100000000000000000600')
+                        // Note precision error, should be 100000000000000000400
+                        assert.equal(staker2Balance.toString(), '100000000000000000399')
+                    })
+
+                    describe('redeem(uint256 redeemTokens)', async () => {
+
+                        beforeEach(async () => {
+                            // await rToken.redeem(web3.utils.toBN('100000000000000000399'))
+                        })
+
+                        it('unbonds and returns LPT to user after unbonding period', async () => {
+
+                        })
+                    })
+                })
             })
         })
     })

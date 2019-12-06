@@ -37,3 +37,11 @@ Returns amount of LPT unbonded / exchange rate
 
 If the reward cut is changed on the Transcoder, I think the strategy would need to be updated.
 Eg changeAllocationStrategy() would need to be called on the rToken.
+
+
+####Example with fabricated decimals: 
+Decimals: 10**3
+
+SC Investor A mint 10 rLPT (10000). investUnderlying() returns 10000 * 1000 / 1000 = 10000 (SCA sInternalAmount)  
+Reward 0. Total = 11000. SCA = 11000. Exchange rate = 1100
+  
