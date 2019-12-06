@@ -33,14 +33,16 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, s
         await bondingManager.setNumTranscoders(NUM_TRANSCODERS)
         await bondingManager.setNumActiveTranscoders(NUM_ACTIVE_TRANSCODERS)
         await bondingManager.setMaxEarningsClaimsRounds(MAX_EARNINGS_CLAIMS_ROUNDS)
+
+        livepeerToken = await fixture.deployAndRegister(ERC20Mintable, 'LivepeerToken')
     })
 
     beforeEach(async () => {
         await fixture.setUp()
 
-        livepeerToken = await ERC20Mintable.new()
         await livepeerToken.mint(staker1, toWad(1000))
         await livepeerToken.mint(staker2, toWad(1000))
+        await livepeerToken.mint(stakeCapitalTranscoder, toWad(1000))
 
         livepeerAllocationStrategy = await LivepeerAllocationStrategy
             .new(livepeerToken.address, bondingManager.address, fixture.roundsManager.address, stakeCapitalTranscoder)
@@ -56,39 +58,39 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, s
     })
 
     async function printAccount(account) {
-        let accountName;
-        if (account === admin) accountName = "admin";
-        else if (account === staker1) accountName = "staker1";
-        else if (account === staker2) accountName = "staker2";
+        let accountName
+        if (account === admin) accountName = 'admin'
+        else if (account === staker1) accountName = 'staker1'
+        else if (account === staker2) accountName = 'staker2'
 
         const tokenBalance = await rToken.balanceOf.call(account)
-        console.log(`\n${accountName} tokenBalance ${tokenBalance}`);
+        console.log(`\n${accountName} tokenBalance ${tokenBalance}`)
 
         const receivedLoan = await rToken.receivedLoanOf.call(account)
-        console.log(`${accountName} receivedLoan ${receivedLoan}`);
+        console.log(`${accountName} receivedLoan ${receivedLoan}`)
 
         const receivedSavings = await rToken.receivedSavingsOf.call(account)
-        console.log(`${accountName} receivedSavings ${receivedSavings}`);
+        console.log(`${accountName} receivedSavings ${receivedSavings}`)
 
         const interestPayable = await rToken.interestPayableOf.call(account)
-        console.log(`${accountName} interestPayable ${interestPayable}`);
+        console.log(`${accountName} interestPayable ${interestPayable}`)
 
-        const accountStats = await rToken.getAccountStats.call(account);
+        const accountStats = await rToken.getAccountStats.call(account)
 
-        const cumulativeInterest = accountStats.cumulativeInterest;
-        console.log(`${accountName} cumulativeInterest ${cumulativeInterest}`);
+        const cumulativeInterest = accountStats.cumulativeInterest
+        console.log(`${accountName} cumulativeInterest ${cumulativeInterest}`)
 
-        const rInterest = accountStats.rInterest;
-        console.log(`${accountName} rInterest ${rInterest}`);
+        const rInterest = accountStats.rInterest
+        console.log(`${accountName} rInterest ${rInterest}`)
 
-        const sInternalAmount = accountStats.sInternalAmount;
-        console.log(`${accountName} sInternalAmount ${sInternalAmount}`);
+        const sInternalAmount = accountStats.sInternalAmount
+        console.log(`${accountName} sInternalAmount ${sInternalAmount}`)
 
-        const lDebt = accountStats.lDebt;
-        console.log(`${accountName} lDebt ${lDebt}`);
+        const lDebt = accountStats.lDebt
+        console.log(`${accountName} lDebt ${lDebt}`)
 
-        const rAmount = accountStats.rAmount;
-        console.log(`${accountName} rAmount ${rAmount}`);
+        const rAmount = accountStats.rAmount
+        console.log(`${accountName} rAmount ${rAmount}`)
     }
 
     async function printExchangeRate() {
@@ -97,6 +99,7 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, s
 
     async function printDelegatorInfo() {
         console.log(await bondingManager.getDelegator(livepeerAllocationStrategy.address))
+        console.log(`Bonded Amount: ${(await bondingManager.getDelegator(livepeerAllocationStrategy.address)).bondedAmount.toString()}`)
     }
 
     async function transcoderReward(rewardValue, round) {
@@ -105,12 +108,13 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, s
         await fixture.jobsManager.execute(
             bondingManager.address,
             functionEncodedABI(
-                "updateTranscoderWithFees(address,uint256,uint256)",
-                ["address", "uint256", "uint256"],
+                'updateTranscoderWithFees(address,uint256,uint256)',
+                ['address', 'uint256', 'uint256'],
                 [stakeCapitalTranscoder, 1000, round]
             )
         )
         await fixture.minter.setMockUint256(functionSig('createReward(uint256,uint256)'), rewardValue)
+        // await livepeerToken.mint(fixture.minter.address, rewardValue)
 
         // Reward will distribute reward into 4 chunks of 250, 3 for transcoder, 1 for staker1.
         await bondingManager.reward({ from: stakeCapitalTranscoder })
@@ -126,7 +130,7 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, s
             await fixture.roundsManager.setMockBool(functionSig('currentRoundLocked()'), false)
             await fixture.roundsManager.setMockUint256(functionSig('currentRound()'), currentRound)
 
-            await livepeerToken.approve(rToken.address, toWad(100), { from: stakeCapitalTranscoder })
+            await livepeerToken.approve(bondingManager.address, toWad(100), { from: stakeCapitalTranscoder })
             await bondingManager.bond(toWad(100), stakeCapitalTranscoder, { from: stakeCapitalTranscoder })
             await bondingManager.transcoder(50 * LIVEPEER_PERC_MULTIPLIER, 10 * LIVEPEER_PERC_MULTIPLIER, 100, { from: stakeCapitalTranscoder })
 
@@ -202,12 +206,27 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, s
 
                     describe('redeem(uint256 redeemTokens)', async () => {
 
+                        let unbondingLockId, staker2Balance
+
                         beforeEach(async () => {
-                            // await rToken.redeem(web3.utils.toBN('100000000000000000399'))
+                            await rToken.payInterest(staker2)
+                            staker2Balance = await rToken.balanceOf(staker2)
+                            unbondingLockId = (await bondingManager.getDelegator(livepeerAllocationStrategy.address)).nextUnbondingLockId
+                            await rToken.redeem(staker2Balance, { from: staker2 })
                         })
 
                         it('unbonds and returns LPT to user after unbonding period', async () => {
+                            await fixture.roundsManager.setMockUint256(functionSig('currentRound()'), currentRound + 10)
+                            // This mocks the behaviour of the Minter contract, giving the livepeerAllocationStrategy the unbonded LPT
+                            // We need to either create a real instance of the Minter or test with full integration tests.
+                            await livepeerToken.mint(livepeerAllocationStrategy.address, staker2Balance);
 
+                            await livepeerAllocationStrategy.withdrawUnbondingLock(unbondingLockId, { from: staker2 })
+
+                            const delegatorInfo = await bondingManager.getDelegator(livepeerAllocationStrategy.address)
+                            assert.equal((await rToken.balanceOf(staker2)).toString(), '0')
+                            assert.equal((await livepeerToken.balanceOf(staker2)).toString(), '1000000000000000000399')
+                            assert.equal(delegatorInfo.bondedAmount, '100000000000000000849')
                         })
                     })
                 })

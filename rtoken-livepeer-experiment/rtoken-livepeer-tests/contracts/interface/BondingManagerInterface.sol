@@ -20,4 +20,10 @@ contract BondingManagerInterface {
     function claimEarnings(uint256 _endRound) external;
 
     function withdrawStake(uint256 _unbondingLockId) external;
+
+    function getDelegatorUnbondingLock(address _delegator, uint256 _unbondingLockId) public view returns
+    (
+        uint256 amount,
+        uint256 withdrawRound
+    );
 }

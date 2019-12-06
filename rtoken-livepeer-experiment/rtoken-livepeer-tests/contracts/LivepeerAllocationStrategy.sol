@@ -3,11 +3,14 @@ pragma solidity >=0.5.10 <0.6.0;
 import {IAllocationStrategy} from "../../rtoken-contracts/contracts/IAllocationStrategy.sol";
 import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import {BondingManagerInterface} from "./BondingManagerInterface.sol";
-import {RoundsManagerInterface} from "./RoundsManagerInterface.sol";
+import {BondingManagerInterface} from "./interface/BondingManagerInterface.sol";
+import {RoundsManagerInterface} from "./interface/RoundsManagerInterface.sol";
+import {UintArrayLib} from "./lib/UintArrayLib.sol";
 
 // TODO: Consider passing in LivepeerController instead of individual contracts.
 contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
+
+    using UintArrayLib for uint256[];
 
     uint256 private constant EXCHANGE_RATE_DECIMALS_MULTIPLIER = 10**18;
     uint256 private currentExchangeRate = EXCHANGE_RATE_DECIMALS_MULTIPLIER;
@@ -19,6 +22,7 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
     BondingManagerInterface bondingManager;
     RoundsManagerInterface roundsManager;
     address stakeCapitalTranscoder;
+    mapping(address => uint256[]) addressUnbondingLocks;
 
     event LivepeerAllocationStrategyRedeem(uint256 unbondingLockId);
 
@@ -76,6 +80,8 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
     //     Alternatively end accrueInterest() early if not needed.
     function investUnderlying(uint256 investAmount) external returns (uint256) {
         this.accrueInterest();
+        require(livepeerToken.transferFrom(msg.sender, address(this), investAmount), "token transfer failed");
+        require(livepeerToken.approve(address(bondingManager), investAmount), "token approve failed");
         bondingManager.bond(investAmount, stakeCapitalTranscoder);
         investedSinceLastAccrue += investAmount;
 
@@ -88,6 +94,7 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
         bondingManager.unbond(redeemAmount);
         redeemedSinceLastAccrue += redeemAmount;
 
+        addressUnbondingLocks[owner].push(unbondingLockId);
         emit LivepeerAllocationStrategyRedeem(unbondingLockId);
 
         return redeemAmount * EXCHANGE_RATE_DECIMALS_MULTIPLIER / currentExchangeRate;
@@ -98,7 +105,14 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
     }
 
     function withdrawUnbondingLock(uint256 _unbondingLockId) external {
+        require(addressUnbondingLocks[msg.sender].contains(_unbondingLockId), "Sender doesn't own unbondingLockID");
+
+        uint256 unbondAmount;
+        (unbondAmount,) = bondingManager.getDelegatorUnbondingLock(address(this), _unbondingLockId);
         bondingManager.withdrawStake(_unbondingLockId);
 
+        require(addressUnbondingLocks[msg.sender].deleteItem(_unbondingLockId), "Cannot delete unbondingLockId");
+
+        livepeerToken.transfer(msg.sender, unbondAmount);
     }
 }

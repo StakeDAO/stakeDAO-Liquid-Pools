@@ -620,8 +620,9 @@ contract RToken is
             savingAssetOrignalAmount = 0;
         }
 
-        // transfer the token back
-        require(token.transfer(redeemTo, redeemAmount), "token transfer failed");
+        // transfer the token back - we remove this as we must wait for the unbonding period before the
+        // redeemer can withdrawn their Livepeer Tokens.
+//        require(token.transfer(redeemTo, redeemAmount), "token transfer failed");
 
         emit Transfer(msg.sender, address(0), redeemAmount);
     }
