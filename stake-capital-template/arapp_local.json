@@ -1,0 +1,11 @@
+{
+  "environments": {
+    "devnet": {
+      "appName": "company-template.aragonpm.eth",
+      "address": "0x497d9c622bc27efd06d2632021fdc3cc5038e420",
+      "network": "devnet",
+      "registry": "0x5f6f7e8cc7346a11ca2def8f827b7a0b612c56a1"
+    }
+  },
+  "path": "contracts/CompanyTemplate.sol"
+}

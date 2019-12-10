@@ -4,7 +4,7 @@ Project testing integration of a Livepeer Delegator with RToken to enable mintin
 ## Run tests
 To run the tests for an RToken with a LiveperAllocationStrategy:
 
-1) In each of the directories:  
+1) In each of the directories:
 - `livepeer-protocol`
 - `rtoken-contracts`
 - `rtoken-livepeer-tests`
@@ -17,7 +17,7 @@ npm install
 
 Note: when installing dependencies in the `livepeer-protocol` directory, an `npm install node-gyp` may be required first.  
 
-2) Run a local ganache instance:
+2) Run a local ganache instance in a separate terminal:
 ```
 ganache-cli
 ```
