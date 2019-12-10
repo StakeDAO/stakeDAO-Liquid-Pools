@@ -8,12 +8,10 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
     string constant private ERROR_EMPTY_HOLDERS = "COMPANY_EMPTY_HOLDERS";
     string constant private ERROR_BAD_HOLDERS_STAKES_LEN = "COMPANY_BAD_HOLDERS_STAKES_LEN";
     string constant private ERROR_BAD_VOTE_SETTINGS = "COMPANY_BAD_VOTE_SETTINGS";
-    string constant private ERROR_BAD_PAYROLL_SETTINGS = "COMPANY_BAD_PAYROLL_SETTINGS";
 
     bool constant private TOKEN_TRANSFERABLE = true;
     uint8 constant private TOKEN_DECIMALS = uint8(18);
     uint256 constant private TOKEN_MAX_PER_ACCOUNT = uint256(0);
-    uint64 constant private DEFAULT_FINANCE_PERIOD = uint64(30 days);
 
     constructor(DAOFactory _daoFactory, ENS _ens, MiniMeTokenFactory _miniMeFactory, IFIFSResolvingRegistrar _aragonID)
         BaseTemplate(_daoFactory, _ens, _miniMeFactory, _aragonID)
@@ -24,15 +22,13 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
     }
 
     /**
-    * @dev Create a new MiniMe token and deploy a Company DAO. This function does not allow Payroll
-    *      to be setup due to gas limits.
+    * @dev Create a new MiniMe token and deploy a Company DAO.
     * @param _tokenName String with the name for the token used by share holders in the organization
     * @param _tokenSymbol String with the symbol for the token used by share holders in the organization
     * @param _id String with the name for org, will assign `[id].aragonid.eth`
     * @param _holders Array of token holder addresses
     * @param _stakes Array of token stakes for holders (token has 18 decimals, multiply token amount `* 10^18`)
     * @param _votingSettings Array of [supportRequired, minAcceptanceQuorum, voteDuration] to set up the voting app of the organization
-    * @param _financePeriod Initial duration for accounting periods, it can be set to zero in order to use the default of 30 days.
     * @param _useAgentAsVault Boolean to tell whether to use an Agent app as a more advanced form of Vault app
     */
     function newTokenAndInstance(
@@ -42,13 +38,12 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
         address[] _holders,
         uint256[] _stakes,
         uint64[3] _votingSettings,
-        uint64 _financePeriod,
         bool _useAgentAsVault
     )
         external
     {
         newToken(_tokenName, _tokenSymbol);
-        newInstance(_id, _holders, _stakes, _votingSettings, _financePeriod, _useAgentAsVault);
+        newInstance(_id, _holders, _stakes, _votingSettings, _useAgentAsVault);
     }
 
     /**
@@ -62,32 +57,12 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
         return token;
     }
 
-    event DEBUG(string id);
-
-    function newInstance2(
-        string memory _id,
-        address[] memory _holders,
-        uint256[] memory _stakes,
-        uint64[3] memory _votingSettings,
-        uint64 _financePeriod,
-        bool _useAgentAsVault
-    )
-    public
-    {
-        _validateId(_id);
-        _ensureCompanySettings(_holders, _stakes, _votingSettings);
-
-        (Kernel dao, ACL acl) = _createDAO();
-        (Finance finance, Voting voting) = _setupApps(dao, acl, _holders, _stakes, _votingSettings, _financePeriod, _useAgentAsVault);
-    }
-
     /**
     * @dev Deploy a Company DAO using a previously cached MiniMe token
     * @param _id String with the name for org, will assign `[id].aragonid.eth`
     * @param _holders Array of token holder addresses
     * @param _stakes Array of token stakes for holders (token has 18 decimals, multiply token amount `* 10^18`)
     * @param _votingSettings Array of [supportRequired, minAcceptanceQuorum, voteDuration] to set up the voting app of the organization
-    * @param _financePeriod Initial duration for accounting periods, it can be set to zero in order to use the default of 30 days.
     * @param _useAgentAsVault Boolean to tell whether to use an Agent app as a more advanced form of Vault app
     */
     function newInstance(
@@ -95,7 +70,6 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
         address[] memory _holders,
         uint256[] memory _stakes,
         uint64[3] memory _votingSettings,
-        uint64 _financePeriod,
         bool _useAgentAsVault
     )
         public
@@ -104,41 +78,7 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
         _ensureCompanySettings(_holders, _stakes, _votingSettings);
 
         (Kernel dao, ACL acl) = _createDAO();
-        (Finance finance, Voting voting) = _setupApps(dao, acl, _holders, _stakes, _votingSettings, _financePeriod, _useAgentAsVault);
-        _transferCreatePaymentManagerFromTemplate(acl, finance, voting);
-        _transferRootPermissionsFromTemplateAndFinalizeDAO(dao, voting);
-        _registerID(_id, dao);
-    }
-
-    /**
-    * @dev Deploy a Company DAO using a previously cached MiniMe token
-    * @param _id String with the name for org, will assign `[id].aragonid.eth`
-    * @param _holders Array of token holder addresses
-    * @param _stakes Array of token stakes for holders (token has 18 decimals, multiply token amount `* 10^18`)
-    * @param _votingSettings Array of [supportRequired, minAcceptanceQuorum, voteDuration] to set up the voting app of the organization
-    * @param _financePeriod Initial duration for accounting periods, it can be set to zero in order to use the default of 30 days.
-    * @param _useAgentAsVault Boolean to tell whether to use an Agent app as a more advanced form of Vault app
-    * @param _payrollSettings Array of [address denominationToken , IFeed priceFeed, uint64 rateExpiryTime, address employeeManager]
-             for the payroll app. The `employeeManager` can be set to `0x0` in order to use the voting app as the employee manager.
-    */
-    function newInstance(
-        string memory _id,
-        address[] memory _holders,
-        uint256[] memory _stakes,
-        uint64[3] memory _votingSettings,
-        uint64 _financePeriod,
-        bool _useAgentAsVault,
-        uint256[4] memory _payrollSettings
-    )
-        public
-    {
-        _validateId(_id);
-        _ensureCompanySettings(_holders, _stakes, _votingSettings, _payrollSettings);
-
-        (Kernel dao, ACL acl) = _createDAO();
-        (Finance finance, Voting voting) = _setupApps(dao, acl, _holders, _stakes, _votingSettings, _financePeriod, _useAgentAsVault);
-        _setupPayrollApp(dao, acl, finance, voting, _payrollSettings);
-        _transferCreatePaymentManagerFromTemplate(acl, finance, voting);
+        Voting voting = _setupApps(dao, acl, _holders, _stakes, _votingSettings, _useAgentAsVault);
         _transferRootPermissionsFromTemplateAndFinalizeDAO(dao, voting);
         _registerID(_id, dao);
     }
@@ -149,38 +89,26 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
         address[] memory _holders,
         uint256[] memory _stakes,
         uint64[3] memory _votingSettings,
-        uint64 _financePeriod,
         bool _useAgentAsVault
     )
         internal
-        returns (Finance, Voting)
+        returns (Voting)
     {
         MiniMeToken token = _popTokenCache(msg.sender);
         Vault agentOrVault = _useAgentAsVault ? _installDefaultAgentApp(_dao) : _installVaultApp(_dao);
-        Finance finance = _installFinanceApp(_dao, agentOrVault, _financePeriod == 0 ? DEFAULT_FINANCE_PERIOD : _financePeriod);
         TokenManager tokenManager = _installTokenManagerApp(_dao, token, TOKEN_TRANSFERABLE, TOKEN_MAX_PER_ACCOUNT);
         Voting voting = _installVotingApp(_dao, token, _votingSettings);
 
         _mintTokens(_acl, tokenManager, _holders, _stakes);
-        _setupPermissions(_acl, agentOrVault, voting, finance, tokenManager, _useAgentAsVault);
+        _setupPermissions(_acl, agentOrVault, voting, tokenManager, _useAgentAsVault);
 
-        return (finance, voting);
-    }
-
-    function _setupPayrollApp(Kernel _dao, ACL _acl, Finance _finance, Voting _voting, uint256[4] memory _payrollSettings) internal {
-        (address denominationToken, IFeed priceFeed, uint64 rateExpiryTime, address employeeManager) = _unwrapPayrollSettings(_payrollSettings);
-        address manager = employeeManager == address(0) ? _voting : employeeManager;
-
-        Payroll payroll = _installPayrollApp(_dao, _finance, denominationToken, priceFeed, rateExpiryTime);
-        _createPayrollPermissions(_acl, payroll, manager, _voting, _voting);
-        _grantCreatePaymentPermission(_acl, _finance, payroll);
+        return voting;
     }
 
     function _setupPermissions(
         ACL _acl,
         Vault _agentOrVault,
         Voting _voting,
-        Finance _finance,
         TokenManager _tokenManager,
         bool _useAgentAsVault
     )
@@ -189,25 +117,10 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
         if (_useAgentAsVault) {
             _createAgentPermissions(_acl, Agent(_agentOrVault), _voting, _voting);
         }
-        _createVaultPermissions(_acl, _agentOrVault, _finance, _voting);
-        _createFinancePermissions(_acl, _finance, _voting, _voting);
-        _createFinanceCreatePaymentsPermission(_acl, _finance, _voting, address(this));
+        _createVaultPermissions(_acl, _agentOrVault, _voting, _voting);
         _createEvmScriptsRegistryPermissions(_acl, _voting, _voting);
         _createVotingPermissions(_acl, _voting, _voting, _tokenManager, _voting);
         _createTokenManagerPermissions(_acl, _tokenManager, _voting, _voting);
-    }
-
-    function _ensureCompanySettings(
-        address[] memory _holders,
-        uint256[] memory _stakes,
-        uint64[3] memory _votingSettings,
-        uint256[4] memory _payrollSettings
-    )
-        private
-        pure
-    {
-        _ensureCompanySettings(_holders, _stakes, _votingSettings);
-        require(_payrollSettings.length == 4, ERROR_BAD_PAYROLL_SETTINGS);
     }
 
     function _ensureCompanySettings(address[] memory _holders, uint256[] memory _stakes, uint64[3] memory _votingSettings) private pure {

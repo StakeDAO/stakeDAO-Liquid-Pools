@@ -1,8 +1,7 @@
 {
-  "name": "@aragon/templates-company",
+  "name": "@aragon/templates-stake-capital",
   "version": "1.0.0",
-  "description": "Company template for Aragon organizations",
-  "author": "Aragon Association <legal@aragon.org>",
+  "description": "Stake Capital Aragon DAO Template",
   "license": "GPL-3.0-or-later",
   "files": [
     "abi/",
