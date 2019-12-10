@@ -4,7 +4,7 @@ import "@aragon/templates-shared/contracts/TokenCache.sol";
 import "@aragon/templates-shared/contracts/BaseTemplate.sol";
 
 
-contract CompanyTemplate is BaseTemplate, TokenCache {
+contract StakeCapitalTemplate is BaseTemplate, TokenCache {
     string constant private ERROR_EMPTY_HOLDERS = "COMPANY_EMPTY_HOLDERS";
     string constant private ERROR_BAD_HOLDERS_STAKES_LEN = "COMPANY_BAD_HOLDERS_STAKES_LEN";
     string constant private ERROR_BAD_VOTE_SETTINGS = "COMPANY_BAD_VOTE_SETTINGS";
