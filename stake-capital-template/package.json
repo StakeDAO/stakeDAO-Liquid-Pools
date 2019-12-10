@@ -47,7 +47,8 @@
     "@aragon/apps-voting": "^2.1.0",
     "@aragon/id": "2.0.3",
     "@aragon/os": "4.3.0",
-    "@aragon/templates-shared": "1.0.0"
+    "@aragon/templates-shared": "1.0.0",
+    "openzeppelin-solidity": "2.0.1"
   },
   "devDependencies": {
     "@aragon/cli": "6.3.2",
