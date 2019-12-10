@@ -28,7 +28,7 @@ npm run deploy:rpc
 ```
 
 5) Create a new Stake Capital DAO on the devchain (would ideally use the Aragon CLI but it's buggy so doesn't work for this purpose):
-- Open `scripts/new-dao.js` and copy the output address from step 4 into the `STAKE_CAPITAL_TEMPLATE_ADDRESS`
+- Open `scripts/new-dao.js` and copy the output address from step 4 into the `STAKE_CAPITAL_TEMPLATE_ADDRESS` constant
 - Run the script with:
 ```
 truffle exec scripts/new-dao.js
