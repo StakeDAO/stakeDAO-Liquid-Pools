@@ -6,7 +6,7 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 
 contract Token is ERC20, ERC20Detailed {
 
-   constructor(string name, string symbol) ERC20Detailed(name, symbol, 18) public {
-      _mint(msg.sender, 100000e18);
+   constructor(address _owner, string name, string symbol) ERC20Detailed(name, symbol, 18) public {
+      _mint(_owner, 10000e18);
    }
 }
