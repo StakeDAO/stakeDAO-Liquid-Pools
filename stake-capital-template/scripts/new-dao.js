@@ -2,10 +2,8 @@ const StakeCapitalTemplate = artifacts.require("StakeCapitalTemplate")
 const Token = artifacts.require("Token")
 const Vault = artifacts.require("Vault")
 
-const STAKE_CAPITAL_TEMPLATE_ADDRESS = "0x79662191c7c2d63ed524009f85660dd17ccb696e"
-const VAULT_APP_ID = "0x7e852e0fcfce6551c13800f1e7476f982525c2b5277ba14b24339c68416336d1";
-
-const STAKE_CAPITAL_DAO_ID = "stake-capital-test14" // This ID must be unique, change it for each new deployment or a revert will occur
+// DAO Config Constants, modify if necessary
+const STAKE_CAPITAL_DAO_ID = "stake-capital-test22" // This ID must be unique, change it for each new deployment or a revert will occur
 
 const TEAM_VOTING_TOKEN_NAME = "Stake Capital Owners"
 const TEAM_VOTING_TOKEN_SYMBOL = "SCO"
@@ -16,12 +14,25 @@ const SCT_VOTING_TOKEN_NAME = "Wrapped Stake Capital Token"
 const SCT_VOTING_TOKEN_SYMBOL = "wSCT"
 const SCT_VOTING_PARAMS = ["500000000000000000", "300000000000000000", "3000"] // [supportRequired, minAcceptanceQuorum, voteDuration] 10^16 == 1%
 
+const VAULT_APP_ID = "0x7e852e0fcfce6551c13800f1e7476f982525c2b5277ba14b24339c68416336d1";
 const TEST_ACCOUNT_2_SCT_BALANCE = "5000000000000000000000" // 5000 SCT
 const VAULT_DAI_BALANCE = "10000000000000000000000" // 10000 DAI
+const NETWORK_ARG = "--network"
+
+const stakeCapitalTemplateAddress = () => {
+    if (process.argv.includes(NETWORK_ARG) && process.argv[process.argv.indexOf(NETWORK_ARG) + 1] === "rinkeby") {
+        const Arapp = require("../arapp")
+        return Arapp.environments.rinkeby.address
+    } else {
+        const Arapp = require("../arapp_local")
+        return Arapp.environments.devnet.address
+    }
+}
+
+console.log("TEMPLATE ADDRESS: ", stakeCapitalTemplateAddress())
 
 module.exports = async () => {
     try {
-
         const [account1, account2] = await web3.eth.getAccounts()
         const TEAM_VOTING_MEMBERS = [account1]
 
@@ -31,7 +42,7 @@ module.exports = async () => {
         await sct.transfer(account2, TEST_ACCOUNT_2_SCT_BALANCE)
         console.log(`Account1 SCT balance: ${await sct.balanceOf(account1)} Account2 SCT balance: ${await sct.balanceOf(account2)}`)
 
-        let template = await StakeCapitalTemplate.at(STAKE_CAPITAL_TEMPLATE_ADDRESS)
+        let template = await StakeCapitalTemplate.at(stakeCapitalTemplateAddress())
 
         console.log(`\nCreating vote tokens...`)
         const newTokensReceipt = await template.newTokens(
