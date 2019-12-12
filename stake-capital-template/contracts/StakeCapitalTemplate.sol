@@ -7,8 +7,9 @@ import "./external/Rewards.sol";
 
 contract StakeCapitalTemplate is BaseTemplate, TokenCache {
 
-    bytes32 constant internal TOKEN_WRAPPER_ID = 0x1fda7985bca2bed0615ee04a107b3262fe2a24b5ad427f2e8ef191a446d7841b;
-    bytes32 constant internal REWARDS_ID = 0x3ca69801a60916e9222ceb2fa3089b3f66b4e1b3fc49f4a562043d9ec1e5a00b;
+//    bytes32 constant internal TOKEN_WRAPPER_ID = 0x1fda7985bca2bed0615ee04a107b3262fe2a24b5ad427f2e8ef191a446d7841b; // token-wrapper.open.aragonpmeth
+    bytes32 constant internal TOKEN_WRAPPER_ID = 0xdab7adb04b01d9a3f85331236b5ce8f5fdc5eecb1eebefb6129bc7ace10de7bd; // token-wrapper.hatch.aragonpm.eth
+    bytes32 constant internal REWARDS_ID = 0x3ca69801a60916e9222ceb2fa3089b3f66b4e1b3fc49f4a562043d9ec1e5a00b; // rewards.aragonpm.eth
 
     string constant private ERROR_EMPTY_HOLDERS = "COMPANY_EMPTY_HOLDERS";
     string constant private ERROR_BAD_HOLDERS_STAKES_LEN = "COMPANY_BAD_HOLDERS_STAKES_LEN";
@@ -24,7 +25,7 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
         address stakersToken;
     }
 
-    mapping (address => DeployedContracts) private deployedContracts;
+    mapping (address => DeployedContracts) public deployedContracts; // TODO: Make private.
 
     constructor(DAOFactory _daoFactory, ENS _ens, MiniMeTokenFactory _miniMeFactory, IFIFSResolvingRegistrar _aragonID)
         BaseTemplate(_daoFactory, _ens, _miniMeFactory, _aragonID)
@@ -69,7 +70,7 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
         uint256[] memory _stakes,
         uint64[3] memory _teamVotingSettings,
         uint64[3] memory _stakerVotingSettings,
-        address _sctToken
+        ERC20 _sctToken
     )
         public
     {
@@ -77,32 +78,36 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
         _ensureCompanySettings(_holders, _stakes, _teamVotingSettings, _stakerVotingSettings);
 
         (Kernel dao, ACL acl) = _createDAO();
-        Voting teamVoting = _setupApps(dao, acl, _holders, _stakes, _teamVotingSettings, _stakerVotingSettings);
+        (Voting teamVoting, TokenManager tokenManager) = _setupApps(dao, acl, _holders, _stakes, _teamVotingSettings, _stakerVotingSettings);
         setupTokenWrapper(dao, acl, _sctToken, teamVoting);
-        setupVaultAndRewards(dao, acl, teamVoting);
+        setupVaultAndRewards(dao, acl, teamVoting, tokenManager);
 
         _transferRootPermissionsFromTemplateAndFinalizeDAO(dao, teamVoting);
         _registerID(_id, dao);
         _deleteStoredTokens(msg.sender);
     }
 
+    event DEBUG(address tokenWrapper);
+
     // TODO: These 2 functions are separated from the others due to a stackTooDeep error. Consider rearranging for consistency.
-    function setupTokenWrapper(Kernel _dao, ACL _acl, address _sctToken, Voting _teamVoting) internal {
+    function setupTokenWrapper(Kernel _dao, ACL _acl, ERC20 _sctToken, Voting _teamVoting) internal {
         (, MiniMeToken stakersToken) = _retrieveStoredTokens(msg.sender);
 
         TokenWrapper tokenWrapper = TokenWrapper(_installNonDefaultApp(_dao, TOKEN_WRAPPER_ID));
         stakersToken.changeController(address(tokenWrapper));
-        tokenWrapper.initialize(stakersToken, ERC20(_sctToken));
+        tokenWrapper.initialize(stakersToken, _sctToken); // TODO: Error on this line.
+
+        emit DEBUG(address(tokenWrapper));
 
         _acl.createPermission(address(-1), tokenWrapper, bytes32(-1), _teamVoting);
     }
 
-    function setupVaultAndRewards(Kernel _dao, ACL _acl, address _teamVoting) internal {
+    function setupVaultAndRewards(Kernel _dao, ACL _acl, address _teamVoting, address _tokenManager) internal {
         Vault vault = _installVaultApp(_dao);
 
         bytes memory initializeData = abi.encodeWithSelector(Rewards(0).initialize.selector, vault);
         Rewards rewards = Rewards(_installNonDefaultApp(_dao, REWARDS_ID, initializeData));
-        _acl.createPermission(address(-1), rewards, rewards.ADD_REWARD_ROLE(), _teamVoting);
+        _acl.createPermission(_tokenManager, rewards, rewards.ADD_REWARD_ROLE(), _teamVoting);
 
         _createVaultPermissions(_acl, vault, _teamVoting, address(rewards));
     }
@@ -116,7 +121,7 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
         uint64[3] memory _stakerVotingSettings
     )
         internal
-        returns (Voting)
+        returns (Voting, TokenManager)
     {
         (MiniMeToken teamToken, MiniMeToken stakersToken) = _retrieveStoredTokens(msg.sender);
         Agent agent = _installDefaultAgentApp(_dao);
@@ -127,7 +132,7 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
         _mintTokens(_acl, tokenManager, _holders, _stakes);
         _setupPermissions(_acl, agent, teamVoting, stakerVoting, tokenManager);
 
-        return teamVoting;
+        return (teamVoting, tokenManager);
     }
 
     function _setupPermissions(

@@ -1,6 +1,6 @@
 const deployTemplate = require('@aragon/templates-shared/scripts/deploy-template')
 
-const TEMPLATE_NAME = 'stake-capital-template'
+const TEMPLATE_NAME = 'stake-capital-template.open'
 const CONTRACT_NAME = 'StakeCapitalTemplate'
 
 module.exports = callback => {
