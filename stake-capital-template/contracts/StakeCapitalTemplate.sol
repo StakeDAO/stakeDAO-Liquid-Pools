@@ -25,7 +25,7 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
         address stakersToken;
     }
 
-    mapping (address => DeployedContracts) public deployedContracts; // TODO: Make private.
+    mapping (address => DeployedContracts) private deployedContracts;
 
     constructor(DAOFactory _daoFactory, ENS _ens, MiniMeTokenFactory _miniMeFactory, IFIFSResolvingRegistrar _aragonID)
         BaseTemplate(_daoFactory, _ens, _miniMeFactory, _aragonID)
@@ -87,17 +87,13 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
         _deleteStoredTokens(msg.sender);
     }
 
-    event DEBUG(address tokenWrapper);
-
     // TODO: These 2 functions are separated from the others due to a stackTooDeep error. Consider rearranging for consistency.
     function setupTokenWrapper(Kernel _dao, ACL _acl, ERC20 _sctToken, Voting _teamVoting) internal {
         (, MiniMeToken stakersToken) = _retrieveStoredTokens(msg.sender);
 
         TokenWrapper tokenWrapper = TokenWrapper(_installNonDefaultApp(_dao, TOKEN_WRAPPER_ID));
         stakersToken.changeController(address(tokenWrapper));
-        tokenWrapper.initialize(stakersToken, _sctToken); // TODO: Error on this line.
-
-        emit DEBUG(address(tokenWrapper));
+        tokenWrapper.initialize(stakersToken, _sctToken);
 
         _acl.createPermission(address(-1), tokenWrapper, bytes32(-1), _teamVoting);
     }
