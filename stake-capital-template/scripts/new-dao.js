@@ -3,7 +3,7 @@ const Token = artifacts.require("Token")
 const Vault = artifacts.require("Vault")
 
 // DAO Config Constants, modify if necessary
-const STAKE_CAPITAL_DAO_ID = "stake-capital-test22" // This ID must be unique, change it for each new deployment or a revert will occur
+const STAKE_CAPITAL_DAO_ID = "stake-capital-test23" // This ID must be unique, change it for each new deployment or a revert will occur
 
 const TEAM_VOTING_TOKEN_NAME = "Stake Capital Owners"
 const TEAM_VOTING_TOKEN_SYMBOL = "SCO"
