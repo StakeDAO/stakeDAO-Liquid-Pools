@@ -12,8 +12,8 @@
       "wsRPC": "wss://mainnet.eth.aragon.network/ws"
     },
     "rinkeby": {
-      "appName": "stake-capital-template.open.aragonpm.eth",
-      "address": "0x79662191c7c2d63ed524009f85660dd17ccb696e",
+      "appName": "stake-capital-template.aragonpm.eth",
+      "address": "0x7efc582d32b862801c247a7c09ec0fb27c849e15",
       "network": "rinkeby",
       "registry": "0x98Df287B6C145399Aaa709692c8D308357bC085D"
     },

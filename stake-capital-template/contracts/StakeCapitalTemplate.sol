@@ -8,8 +8,8 @@ import "./external/Rewards.sol";
 contract StakeCapitalTemplate is BaseTemplate, TokenCache {
 
     bytes32 constant internal REWARDS_ID = 0x3ca69801a60916e9222ceb2fa3089b3f66b4e1b3fc49f4a562043d9ec1e5a00b; // rewards.aragonpm.eth
-    bytes32 constant internal TOKEN_WRAPPER_ID = 0x1fda7985bca2bed0615ee04a107b3262fe2a24b5ad427f2e8ef191a446d7841b; // token-wrapper.open.aragonpm.eth for local deployment
-//    bytes32 constant internal TOKEN_WRAPPER_ID = 0xdab7adb04b01d9a3f85331236b5ce8f5fdc5eecb1eebefb6129bc7ace10de7bd; // token-wrapper.hatch.aragonpm.eth for rinkeby/mainnet deployment
+//    bytes32 constant internal TOKEN_WRAPPER_ID = 0x1fda7985bca2bed0615ee04a107b3262fe2a24b5ad427f2e8ef191a446d7841b; // token-wrapper.open.aragonpm.eth for local deployment
+    bytes32 constant internal TOKEN_WRAPPER_ID = 0xdab7adb04b01d9a3f85331236b5ce8f5fdc5eecb1eebefb6129bc7ace10de7bd; // token-wrapper.hatch.aragonpm.eth for rinkeby/mainnet deployment
 
     string constant private ERROR_EMPTY_HOLDERS = "COMPANY_EMPTY_HOLDERS";
     string constant private ERROR_BAD_HOLDERS_STAKES_LEN = "COMPANY_BAD_HOLDERS_STAKES_LEN";
@@ -105,7 +105,7 @@ contract StakeCapitalTemplate is BaseTemplate, TokenCache {
         Rewards rewards = Rewards(_installNonDefaultApp(_dao, REWARDS_ID, initializeData));
         _acl.createPermission(_tokenManager, rewards, rewards.ADD_REWARD_ROLE(), _teamVoting);
 
-        _createVaultPermissions(_acl, vault, _teamVoting, address(rewards));
+        _createVaultPermissions(_acl, vault, address(rewards), _teamVoting);
     }
 
     function _setupApps(

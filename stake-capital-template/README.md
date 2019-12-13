@@ -51,33 +51,38 @@ truffle exec scripts/new-dao.js
 http://localhost:3000/#/<DAO address>
 ```
 
-// TODO: Update local deployment instrs.
-
 ## Rinkeby deployment
-
-Need to specify local keys.
 
 1) Install dependencies (if not already installed):
 ```
 npm install
 ```
 
-2) Hard code the correct `TOKEN_WRAPPER_ID` in `contracts/StakeCapitalTemplate.sol`. 
+2) Deployment to Rinkeby requires adding a file to the `.aragon` folder in your home directory with an infura link 
+and your own private keys. Steps for adding this file can be found here: https://hack.aragon.org/docs/cli-intro#set-a-private-key.  
+- An Infura link for Rinkeby can be created by creating an Infura account here: https://infura.io/  
+- Private keys for MetaMask accounts can be found by opening MetaMask, clicking the hamburger menu, then `Details` under 
+the account name.   
+ 
+The `scripts/new-dao.js` script requires there be 2 private keys in the `keys` field of the relevant config file
+for testing purposes.
+
+3) Hard code the correct `TOKEN_WRAPPER_ID` in `contracts/StakeCapitalTemplate.sol`. 
    Uncomment the one specified for rinkeby/mainnet deployment, comment the other one.
 
-3) Deploy the template with:
+4) Deploy the template with:
 ```
 npm run deploy:rinkeby
 ```
 
-4) Modify any of the DAO config constants is necessary in the `scripts/new-dao.js` script. 
+5) Modify any of the DAO config constants is necessary in the `scripts/new-dao.js` script. 
 
-5) Create a new Stake Capital DAO with:
+6) Create a new Stake Capital DAO with:
 ```
 truffle exec scripts/new-dao.js --network rinkeby
 ```
 
-6) Copy the output DAO address into this URL and open it in a web browser:
+7) Copy the output DAO address into this URL and open it in a web browser:
 ```
 https://rinkeby.aragon.org/#/<DAO address>
 ```

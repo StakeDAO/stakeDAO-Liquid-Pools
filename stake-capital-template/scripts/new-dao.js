@@ -29,8 +29,6 @@ const stakeCapitalTemplateAddress = () => {
     }
 }
 
-console.log("TEMPLATE ADDRESS: ", stakeCapitalTemplateAddress())
-
 module.exports = async () => {
     try {
         const [account1, account2] = await web3.eth.getAccounts()
@@ -38,7 +36,7 @@ module.exports = async () => {
 
         console.log(`Creating SCT token...`)
         let sct = await Token.new(account1, "Stake Capital Token", "SCT")
-        console.log(`SCT Token created: ${sct.address} Transferring SCT to account2...`)
+        console.log(`SCT Token address: ${sct.address} Transferring SCT to account2...`)
         await sct.transfer(account2, TEST_ACCOUNT_2_SCT_BALANCE)
         console.log(`Account1 SCT balance: ${await sct.balanceOf(account1)} Account2 SCT balance: ${await sct.balanceOf(account2)}`)
 
@@ -63,15 +61,15 @@ module.exports = async () => {
             SCT_VOTING_PARAMS,
             sct.address)
 
-        console.log(`New DAO created at: ${newDaoReceipt.logs.find(x => x.event === "DeployDao").args.dao} Gas used: ${newDaoReceipt.receipt.gasUsed}`)
+        console.log(`DAO address: ${newDaoReceipt.logs.find(x => x.event === "DeployDao").args.dao} Gas used: ${newDaoReceipt.receipt.gasUsed}`)
 
         console.log(`\nCreating DAI token...`)
         let dai = await Token.new(account1, "Dai", "DAI")
-        console.log(`DAI Token created: ${dai.address}`)
+        console.log(`DAI Token address: ${dai.address}`)
 
         const vaultProxyAddress = newDaoReceipt.logs.find(x => x.event === "InstalledApp" && x.args.appId === VAULT_APP_ID).args.appProxy
         const vault = await Vault.at(vaultProxyAddress)
-        console.log(`Approve and transfer DAI to Vault...`)
+        console.log(`Approve and transfer DAI to Vault for use by Rewards app....`)
         await dai.approve(vaultProxyAddress, VAULT_DAI_BALANCE)
         await vault.deposit(dai.address, VAULT_DAI_BALANCE)
         console.log(`Vault DAI balance: ${await dai.balanceOf(vault.address)}`)
