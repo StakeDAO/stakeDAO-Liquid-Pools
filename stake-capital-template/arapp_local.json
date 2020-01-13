@@ -2,7 +2,7 @@
   "environments": {
     "devnet": {
       "appName": "stake-capital-template.aragonpm.eth",
-      "address": "0x497d9c622bc27efd06d2632021fdc3cc5038e420",
+      "address": "0x08bcefd133f31b9948c1f3b905e15f8aa63ffcba",
       "network": "devnet",
       "registry": "0x5f6f7e8cc7346a11ca2def8f827b7a0b612c56a1"
     }

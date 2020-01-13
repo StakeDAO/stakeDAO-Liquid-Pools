@@ -9,7 +9,9 @@ const SortedDoublyLL = artifacts.require('SortedDoublyLL')
 const { toWad, wad4human } = require('@decentral.ee/web3-test-helpers')
 import { functionSig, functionEncodedABI } from '../../livepeer-protocol/utils/helpers'
 
-contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, stakeCapitalTranscoder]) => {
+const toBN = (numberString) => web3.utils.toBN(numberString)
+
+contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, staker3, stakeCapitalTranscoder]) => {
 
     const NUM_TRANSCODERS = 5
     const NUM_ACTIVE_TRANSCODERS = 2
@@ -62,6 +64,7 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, s
         if (account === admin) accountName = 'admin'
         else if (account === staker1) accountName = 'staker1'
         else if (account === staker2) accountName = 'staker2'
+        else if (account === staker3) accountName = 'staker3'
 
         const tokenBalance = await rToken.balanceOf.call(account)
         console.log(`\n${accountName} tokenBalance ${tokenBalance}`)
@@ -167,6 +170,19 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, s
                 assert.equal(exchangeRate.toString(), '1000000000000000002')
                 // The correct balance would be 100000000000000000250
                 assert.equal(stakerBalance.toString(), '100000000000000000200')
+            })
+
+            describe('transfer(address dst, uint256 amount)', () => {
+
+                it('sends correct amount', async () => {
+                    const transferAmount = toBN('50000000000000000100')
+
+                    await rToken.transfer(staker3, transferAmount, { from: staker1 })
+
+                    const accountStats = await rToken.getAccountStats.call(staker3)
+                    assert.equal((await rToken.balanceOf(staker3)).toString(), transferAmount.toString())
+                    assert.equal(accountStats.rAmount.toString(), transferAmount.toString())
+                })
             })
 
             describe('mint(uint256 mintAmount) - RToken Staker2', () => {

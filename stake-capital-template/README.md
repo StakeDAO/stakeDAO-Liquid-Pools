@@ -31,7 +31,7 @@ $ npm run deploy:rpc
 ```
 
 6) Deploy the Token-Wrapper to the devchain as it's not installed by default like the other main apps (Voting, Token Manager, Agent etc):
-- Download https://github.com/aragonone/token-wrapper
+- Download https://github.com/aragonone/voting-connectors/tree/master/apps/token-wrapper
 - Run `npm install` in the `token-wrapper` folder
 - Execute `npm run apm:publish major`
 
@@ -98,4 +98,13 @@ $ truffle exec scripts/new-dao.js --network rinkeby
 ```
 https://rinkeby.aragon.org/#/<DAO address>
 ```
+
+## Post deployment
+In the Aragon client you should now be able to use the Token Wrapper to wrap SCT tokens from each of the accounts you
+specified private keys for in step 2, if constants are unchanged they should each own 5000 SCT. The first account is 
+able to create SCO and wSCT votes and Rewards. Rewards require a reference address which is the wSCT address 
+(output to the console when deploying the dao). It will distribute rewards to wSCT token holders proportional to their balance
+at the time specified by the Reward. In the Stake Capital DAO the permission for creating rewards will likely be given to some
+external contract/address managed by the Stake Capital Team.
+
 
