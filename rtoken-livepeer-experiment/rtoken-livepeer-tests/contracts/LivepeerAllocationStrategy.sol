@@ -41,27 +41,29 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
         return currentExchangeRate;
     }
 
+    /**
+     * @dev Claim earnings and update the exchange rate
+     * @return True if the exchange rate is updated successfully
+     */
     function accrueInterest() external returns (bool) {
-        uint256 lastClaimRound;
-        (,,,,,lastClaimRound,) = bondingManager.getDelegator(address(this));
-
+        uint256 previousTotalWithoutNewInvestments;
         uint256 currentRound = roundsManager.currentRound();
+        (,,,,,uint256 lastClaimRound,) = bondingManager.getDelegator(address(this));
+
         if (lastClaimRound < currentRound) {
             bondingManager.claimEarnings(roundsManager.currentRound());
         }
 
-        uint256 currentDelegatedTotal;
-        (currentDelegatedTotal,,,,,,) = bondingManager.getDelegator(address(this));
+        // Must be fetched after claimEarnings()
+        (uint256 currentDelegatedTotal,,,,,,) = bondingManager.getDelegator(address(this));
 
         // TODO: Remove if we can remove need for exchangeRate in investUnderlying() and redeemUnderlying()
         if (currentDelegatedTotal == 0) {
             return true;
         }
 
-        uint256 previousTotalWithoutNewInvestments;
         if (previousDelegatedTotal == 0) {
-            previousDelegatedTotal = currentDelegatedTotal;
-            previousTotalWithoutNewInvestments = previousDelegatedTotal;
+            previousTotalWithoutNewInvestments = currentDelegatedTotal;
         } else {
             previousTotalWithoutNewInvestments = previousDelegatedTotal + investedSinceLastAccrue - redeemedSinceLastAccrue;
         }
@@ -77,27 +79,42 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
     }
 
     // TODO: Can we determine the return value without the currentExchangeRate so we can remove this.accrueInterest()?
-    //     Alternatively end accrueInterest() early if not needed.
-    function investUnderlying(uint256 investAmount) external returns (uint256) {
-        this.accrueInterest();
-        require(livepeerToken.transferFrom(msg.sender, address(this), investAmount), "token transfer failed");
-        require(livepeerToken.approve(address(bondingManager), investAmount), "token approve failed");
-        bondingManager.bond(investAmount, stakeCapitalTranscoder);
-        investedSinceLastAccrue += investAmount;
+    //     Alternatively end accrueInterest() early if not needed, que?
+    /**
+     * @dev Bond the specified amount
+     * @param _investAmount The amount of tokens to be invested and unbonded
+     * @return Amount of savings value created, which is the investment amount divided by the current exchange rate.
+     *         To determine an accounts balance, the savings value is multiplied by the current exchange rate.
+     */
+    function investUnderlying(uint256 _investAmount) external returns (uint256) {
+        this.accrueInterest(); // Update the exchange rate
 
-        return investAmount * EXCHANGE_RATE_DECIMALS_MULTIPLIER / currentExchangeRate;
+        require(livepeerToken.transferFrom(msg.sender, address(this), _investAmount), "token transfer failed");
+        require(livepeerToken.approve(address(bondingManager), _investAmount), "token approve failed");
+
+        bondingManager.bond(_investAmount, stakeCapitalTranscoder);
+        investedSinceLastAccrue += _investAmount;
+
+        return _investAmount * EXCHANGE_RATE_DECIMALS_MULTIPLIER / currentExchangeRate;
     }
 
-    function redeemUnderlying(address owner, uint256 redeemAmount) external returns (uint256) {
-        uint256 unbondingLockId;
-        (,,,,,,unbondingLockId) = bondingManager.getDelegator(address(this));
-        bondingManager.unbond(redeemAmount);
-        redeemedSinceLastAccrue += redeemAmount;
+    /**
+     * @dev Unbond the specified amount ready to be withdrawn in the future
+     * @param _owner The owner of the redeemed tokens, needed to withdraw the unbonding lock
+     * @param _redeemAmount The amount of tokens to be redeemed and unbonded
+     * @return Amount of savings value burnt, which is the redeem amount divided by the current exchange rate
+     *         (note the exchange rate is updated before this function is called in the RToken)
+     */
+    function redeemUnderlying(address _owner, uint256 _redeemAmount) external returns (uint256) {
+        (,,,,,,uint256 unbondingLockId) = bondingManager.getDelegator(address(this));
 
-        addressUnbondingLocks[owner].push(unbondingLockId);
+        bondingManager.unbond(_redeemAmount);
+        redeemedSinceLastAccrue += _redeemAmount;
+
+        addressUnbondingLocks[_owner].push(unbondingLockId);
         emit LivepeerAllocationStrategyRedeem(unbondingLockId);
 
-        return redeemAmount * EXCHANGE_RATE_DECIMALS_MULTIPLIER / currentExchangeRate;
+        return _redeemAmount * EXCHANGE_RATE_DECIMALS_MULTIPLIER / currentExchangeRate;
     }
 
     function claimEarnings(uint256 _endRound) external {

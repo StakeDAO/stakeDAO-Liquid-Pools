@@ -97,12 +97,17 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, s
     }
 
     async function printExchangeRate() {
-        console.log(`Exchange rate: ${await livepeerAllocationStrategy.exchangeRateStored()}`)
+        console.log(`\nExchange rate: ${await livepeerAllocationStrategy.exchangeRateStored()}`)
     }
 
     async function printDelegatorInfo() {
-        console.log(await bondingManager.getDelegator(livepeerAllocationStrategy.address))
-        console.log(`Bonded Amount: ${(await bondingManager.getDelegator(livepeerAllocationStrategy.address)).bondedAmount.toString()}`)
+        // console.log(await bondingManager.getDelegator(livepeerAllocationStrategy.address))
+        console.log(`\nBonded Amount: ${(await bondingManager.getDelegator(livepeerAllocationStrategy.address)).bondedAmount.toString()}`)
+        console.log(`Transcoder Bonded Amount: ${(await bondingManager.transcoderTotalStake(stakeCapitalTranscoder)).toString()}`)
+    }
+
+    async function printTranscoderBondedAmount() {
+        console.log(`\nTranscoder Bonded Amount: ${(await bondingManager.transcoderTotalStake(stakeCapitalTranscoder)).toString()}`)
     }
 
     async function transcoderReward(rewardValue, round) {
@@ -119,7 +124,7 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, s
         await fixture.minter.setMockUint256(functionSig('createReward(uint256,uint256)'), rewardValue)
         // await livepeerToken.mint(fixture.minter.address, rewardValue)
 
-        // Reward will distribute reward into 4 chunks of 250, 3 for transcoder, 1 for staker1.
+        // Reward with transcoder reward at 50% will distribute half the rewardValue to stakers relative to their stake
         await bondingManager.reward({ from: stakeCapitalTranscoder })
     }
 
@@ -176,7 +181,6 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, s
 
                 it('sends correct amount', async () => {
                     const transferAmount = toBN('50000000000000000100')
-
                     await rToken.transfer(staker3, transferAmount, { from: staker1 })
 
                     const accountStats = await rToken.getAccountStats.call(staker3)
@@ -215,34 +219,59 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, s
                         const staker1Balance = await rToken.balanceOf(staker1)
                         const staker2Balance = await rToken.balanceOf(staker2)
 
+                        // Note precision error, should be 100000000000000000700 (we loose 50 for each reward)
                         assert.equal(staker1Balance.toString(), '100000000000000000600')
-                        // Note precision error, should be 100000000000000000400
+                        // Note precision error, should be 100000000000000000500
                         assert.equal(staker2Balance.toString(), '100000000000000000399')
                     })
 
-                    describe('redeem(uint256 redeemTokens)', async () => {
+                    describe('redeem(uint256 redeemTokens) - RToken Staker2', async () => {
 
-                        let unbondingLockId, staker2Balance
+                        let redeemAmount, unbondingLockId
 
                         beforeEach(async () => {
                             await rToken.payInterest(staker2)
-                            staker2Balance = await rToken.balanceOf(staker2)
+                            const staker2Balance = await rToken.balanceOf(staker2)
+                            redeemAmount = staker2Balance.div(toBN('2'))
+
                             unbondingLockId = (await bondingManager.getDelegator(livepeerAllocationStrategy.address)).nextUnbondingLockId
-                            await rToken.redeem(staker2Balance, { from: staker2 })
+                            await rToken.redeem(redeemAmount, { from: staker2 })
                         })
 
                         it('unbonds and returns LPT to user after unbonding period', async () => {
                             await fixture.roundsManager.setMockUint256(functionSig('currentRound()'), currentRound + 10)
                             // This mocks the behaviour of the Minter contract, giving the livepeerAllocationStrategy the unbonded LPT
                             // We need to either create a real instance of the Minter or test with full integration tests.
-                            await livepeerToken.mint(livepeerAllocationStrategy.address, staker2Balance);
+                            await livepeerToken.mint(livepeerAllocationStrategy.address, redeemAmount);
 
                             await livepeerAllocationStrategy.withdrawUnbondingLock(unbondingLockId, { from: staker2 })
 
                             const delegatorInfo = await bondingManager.getDelegator(livepeerAllocationStrategy.address)
-                            assert.equal((await rToken.balanceOf(staker2)).toString(), '0')
-                            assert.equal((await livepeerToken.balanceOf(staker2)).toString(), '1000000000000000000399')
-                            assert.equal(delegatorInfo.bondedAmount, '100000000000000000849')
+                            assert.equal((await rToken.balanceOf(staker2)).toString(), '50000000000000000200')
+                            assert.equal((await livepeerToken.balanceOf(staker2)).toString(), '950000000000000000199')
+                            assert.equal(delegatorInfo.bondedAmount.toString(), '150000000000000001049')
+                        })
+
+                        describe('mint(uint256 redeemTokens) - RToken Staker2', async () => {
+
+                            it('accrues expected amount after minting more', async () => {
+                                await livepeerToken.approve(rToken.address, toWad(staker2BondedAmount), { from: staker2 })
+                                await rToken.mint(toWad(staker2BondedAmount), { from: staker2 })
+
+                                // Lost 107 due to precision errors here (142 became 100 for staker1, 214 became 150 for staker2)
+                                await transcoderReward(1000, currentRound + 4)
+                                await rToken.payInterest(staker1)
+                                await rToken.payInterest(staker2)
+
+                                // Initial balance is 900000000000000000000
+                                assert.equal((await livepeerToken.balanceOf(staker2)).toString(), '800000000000000000000')
+
+                                // Due to rounding error, the total delegated ends in 1406, but the total redeemable is 700 + 350 = 1050
+                                assert.equal((await rToken.balanceOf(staker1)).toString(), '100000000000000000700')
+                                assert.equal((await rToken.balanceOf(staker2)).toString(), '150000000000000000350')
+                                const delegatorInfo = await bondingManager.getDelegator(livepeerAllocationStrategy.address)
+                                assert.equal(delegatorInfo.bondedAmount.toString(), '250000000000000001406')
+                            })
                         })
                     })
                 })
