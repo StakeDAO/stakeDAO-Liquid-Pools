@@ -31,8 +31,8 @@ contract RToken is
     using SafeMath for uint256;
 
 
-    uint256 public constant ALLOCATION_STRATEGY_EXCHANGE_RATE_SCALE = 1e18;
-    uint256 public constant INITIAL_SAVING_ASSET_CONVERSION_RATE = 1e18;
+    uint256 public constant ALLOCATION_STRATEGY_EXCHANGE_RATE_SCALE = 1e28;
+    uint256 public constant INITIAL_SAVING_ASSET_CONVERSION_RATE = 1e28;
     uint256 public constant MAX_UINT256 = uint256(int256(-1));
     uint256 public constant SELF_HAT_ID = MAX_UINT256;
     uint32 public constant PROPORTION_BASE = 0xFFFFFFFF;
@@ -997,7 +997,7 @@ contract RToken is
     function sOriginalToSInternal(uint sOriginalAmount)
         private view
         returns (uint256 sInternalAmount) {
-        // savingAssetConversionRate is scaled by 1e18
+        // savingAssetConversionRate is scaled by 1e28
         return sOriginalAmount
             .mul(savingAssetConversionRate)
             .div(ALLOCATION_STRATEGY_EXCHANGE_RATE_SCALE);

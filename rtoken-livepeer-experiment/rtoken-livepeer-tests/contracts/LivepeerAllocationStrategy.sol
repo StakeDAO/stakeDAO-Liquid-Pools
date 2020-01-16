@@ -9,11 +9,11 @@ import {UintArrayLib} from "./lib/UintArrayLib.sol";
 
 // TODO: Consider passing in LivepeerController instead of individual contracts.
 contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
-
     using UintArrayLib for uint256[];
 
-    uint256 private constant EXCHANGE_RATE_DECIMALS_MULTIPLIER = 10**18;
+    uint256 private constant EXCHANGE_RATE_DECIMALS_MULTIPLIER = 10**28; // 10**18 * Max LPT token value (rounded up)
     uint256 private currentExchangeRate = EXCHANGE_RATE_DECIMALS_MULTIPLIER;
+    uint256 private previousFeeTotal = 0;
     uint256 private previousDelegatedTotal = 0;
     uint256 private investedSinceLastAccrue = 0;
     uint256 private redeemedSinceLastAccrue = 0;
@@ -54,10 +54,9 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
             bondingManager.claimEarnings(roundsManager.currentRound());
         }
 
-        // Must be fetched after claimEarnings()
+        // Must be fetched after claimEarnings() is called
         (uint256 currentDelegatedTotal,,,,,,) = bondingManager.getDelegator(address(this));
 
-        // TODO: Remove if we can remove need for exchangeRate in investUnderlying() and redeemUnderlying()
         if (currentDelegatedTotal == 0) {
             return true;
         }
@@ -78,8 +77,6 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
         return true;
     }
 
-    // TODO: Can we determine the return value without the currentExchangeRate so we can remove this.accrueInterest()?
-    //     Alternatively end accrueInterest() early if not needed, que?
     /**
      * @dev Bond the specified amount
      * @param _investAmount The amount of tokens to be invested and unbonded
@@ -117,19 +114,21 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
         return _redeemAmount * EXCHANGE_RATE_DECIMALS_MULTIPLIER / currentExchangeRate;
     }
 
+    function withdrawUnbondingLock(uint256 _unbondingLockId) external {
+        require(addressUnbondingLocks[msg.sender].deleteItem(_unbondingLockId), "Cannot delete unbondingLockId, is it owned by sender?");
+
+        (uint256 unbondAmount,) = bondingManager.getDelegatorUnbondingLock(address(this), _unbondingLockId);
+        bondingManager.withdrawStake(_unbondingLockId);
+
+        livepeerToken.transfer(msg.sender, unbondAmount);
+    }
+
     function claimEarnings(uint256 _endRound) external {
         bondingManager.claimEarnings(_endRound);
     }
 
-    function withdrawUnbondingLock(uint256 _unbondingLockId) external {
-        require(addressUnbondingLocks[msg.sender].contains(_unbondingLockId), "Sender doesn't own unbondingLockID");
-
-        uint256 unbondAmount;
-        (unbondAmount,) = bondingManager.getDelegatorUnbondingLock(address(this), _unbondingLockId);
-        bondingManager.withdrawStake(_unbondingLockId);
-
-        require(addressUnbondingLocks[msg.sender].deleteItem(_unbondingLockId), "Cannot delete unbondingLockId");
-
-        livepeerToken.transfer(msg.sender, unbondAmount);
+    function updateTranscoder(address _stakeCapitalTranscoder) external {
+        stakeCapitalTranscoder = _stakeCapitalTranscoder;
+        bondingManager.bond(0, stakeCapitalTranscoder);
     }
 }
