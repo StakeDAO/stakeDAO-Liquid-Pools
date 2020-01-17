@@ -13,7 +13,6 @@ contract LivepeerAllocationStrategy is IAllocationStrategy, Ownable {
 
     uint256 private constant EXCHANGE_RATE_DECIMALS_MULTIPLIER = 10**28; // 10**18 * Max LPT token value (rounded up)
     uint256 private currentExchangeRate = EXCHANGE_RATE_DECIMALS_MULTIPLIER;
-    uint256 private previousFeeTotal = 0;
     uint256 private previousDelegatedTotal = 0;
     uint256 private investedSinceLastAccrue = 0;
     uint256 private redeemedSinceLastAccrue = 0;

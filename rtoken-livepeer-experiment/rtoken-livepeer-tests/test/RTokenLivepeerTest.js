@@ -235,12 +235,7 @@ contract('RToken using LivepeerAllocationStrategy', ([admin, staker1, staker2, s
                     await rToken.mint(staker2BondedAmount, { from: staker2 })
                 })
 
-                it.only('updates exchange rate, bonds and updates user rtoken balance', async () => {
-
-                    await printAccount(staker1)
-                    await printAccount(staker2)
-                    await printExchangeRate()
-
+                it('updates exchange rate, bonds and updates user rtoken balance', async () => {
                     const delagatorInfo = await bondingManager.getDelegator(livepeerAllocationStrategy.address)
                     assert.equal((await rToken.balanceOf(staker2)).toString(), staker2BondedAmount.toString())
                     assert.equal((await livepeerAllocationStrategy.exchangeRateStored()).toString(), '10000000000000000025000000000')
